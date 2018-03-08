@@ -53,6 +53,8 @@ def collect_metadata():
     info_json = list()
     for i in range(len(DF_LISTS)-1):
         info_json.append(get_unique_json(API_PATH, DF_LISTS[i]))
+        if not os.path.exists(DATA_DIR):
+            os.makedirs(DATA_DIR)
         with open(os.path.join(DATA_DIR, PREFIX_JSON + DF_LISTS[i] + '.json'), mode='w') as f:
             json.dump(info_json[i], f)
 
