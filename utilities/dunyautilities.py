@@ -6,12 +6,16 @@
 
 import os
 import json
+import logging
 from compmusic import dunya
 import musicbrainzngs as mb
 
 from utilities.constants import *
 from utilities.recordingcomputation import *
 from utilities.generalutilities import *
+
+mb_logger = logging.getLogger('musicbrainzngs')
+mb_logger.setLevel(logging.WARNING)
 
 # Dunya token
 dunya.set_token(DUNYA_TOKEN)
