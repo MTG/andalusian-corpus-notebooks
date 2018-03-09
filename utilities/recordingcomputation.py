@@ -319,6 +319,7 @@ def get_sections_last_note_tonic(cm, rmbid):
     :param rmbid: Music Brainz id of the selected recording
     :return: selected tonic and a list of all the tonics of the sections
     '''
+
     # get information about the end of every sections of a recording
     section_delimiter_list = [0]
 
@@ -326,6 +327,10 @@ def get_sections_last_note_tonic(cm, rmbid):
     for row in df_row.index.values.tolist():
         section_delimiter_list.append(df_row.loc[row, 'end_time'] + 1)  # plus one to round the end second
     #print(section_delimiter_list)
+
+    # if in the description is not present any section for the track an Exception will be raised
+    if len(section_delimiter_list) == 1:
+        raise Exception("The recording {} has not sections".format(rmbid))
 
     # extract pitch from json file of FN_PITCH_FILT or FN_PITCH
     with open(os.path.join(RECORDINGS_DIR, rmbid, FN_PITCH_FILT)) as json_file:
@@ -401,7 +406,13 @@ def get_sections_last_note_tonic(cm, rmbid):
     return final_tonic, tonic_list
 
 def compute_sections_last_note_tonic_json(cm, single_recording_dir, rmbid):
-    tonic, tonic_list = get_sections_last_note_tonic(cm, rmbid)
+    tonic = 0
+    tonic_list = None
+    try:
+        tonic, tonic_list = get_sections_last_note_tonic(cm, rmbid)
+    except Exception as e:
+        print (e)
+
 
     tonic_dict = dict()
     tonic_dict["value"] = tonic
