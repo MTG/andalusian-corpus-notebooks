@@ -20,6 +20,10 @@ mb_logger.setLevel(logging.WARNING)
 # Dunya token
 dunya.set_token(DUNYA_TOKEN)
 
+mb.set_rate_limit()
+mb.set_hostname("musicbrainz.org")
+
+
 # -------------------------------------------------- CHECK --------------------------------------------------
 
 def check_dunya_metadata():
