@@ -7,10 +7,12 @@
 import os
 import json
 import copy
+import random
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from music21 import *
+
 
 from shutil import copyfile
 from utilities.constants import *
@@ -26,9 +28,20 @@ ATTRIBUTES = ["mbid", "tab", "tonic_not_filt", "tonic_filt", "tonic_sec", "verif
 
 class DataSet:
 
-    def __init__(self, cm, tabs_list, num_recording_per_tab, not_valid_rmbid_list):
+    def __init__(self, cm):
+        self.cm = cm
+        self.df_dataset = None
 
-        df_tab = cm.get_dataframe(DF_LISTS[1])
+    def create_equal_distributed_tabs_dataset(self, tabs_list, num_recording_per_tab, not_valid_rmbid_list):
+        ''' Create a dataset of random recordings by using the tabs contained in the list passed by input.
+        The number of element for every tab is a parameter of a function. The recording indicated in
+        not_valid_rmbid_list are not considered in the results
+
+        :param tabs_list: list of tab indexes that will be used in the dataset
+        :param num_recording_per_tab: number of recording for each tab
+        :param not_valid_rmbid_list: list of rmbid to not include in the dataset
+        '''
+        df_tab = self.cm.get_dataframe(DF_LISTS[1])
         # avoid too long list
         if len(tabs_list) > len(df_tab.index.values):
             raise Exception("tab_list contains to many values: " + str(len(tabs_list)))
@@ -45,22 +58,23 @@ class DataSet:
         self.df_dataset = pd.DataFrame(columns=ATTRIBUTES)
         tabs_matrix = list()
 
-        # for every dataset
+        # for every tab in the dataset
         for tab_index in tabs_list:
-            temp_tab_rmbid_list = cm.search_recording(tab_index, 'all', 'all', 'all')
+            temp_tab_rmbid_list = self.cm.search_recording(tab_index, 'all', 'all', 'all')
             # the dataset could have only analyzed recording with score
             temp_tab_rmbid_list = check_files_of_rmbid_lists(RECORDINGS_DIR, temp_tab_rmbid_list, ['score', 'analysis json'],
                                                    [True, True])
-            tab_rmbid_list = list()
-            for rmbid in temp_tab_rmbid_list:
-                if len(tab_rmbid_list) < num_recording_per_tab:
-                    if rmbid != not_valid_rmbid_list:
-                        tab_rmbid_list.append(rmbid)
-            if len(tab_rmbid_list) < num_recording_per_tab:
-                raise Exception("Tab " + str(tab_index) + " have only " +  str(len(tab_rmbid_list)))
-            tabs_matrix.append(tab_rmbid_list)
+            # delete not valid rmbid
+            a = set(temp_tab_rmbid_list)
+            b = set(not_valid_rmbid_list)
+            temp_tab_rmbid_list = a-b
+            if len(temp_tab_rmbid_list) < num_recording_per_tab:
+                raise Exception("Tab " + str(tab_index) + " have only " + str(len(temp_tab_rmbid_list)))
+            # select randomly the elements from the list
+            temp_tab_rmbid_list = random.sample(temp_tab_rmbid_list, num_recording_per_tab)
+            # append it to the list
+            tabs_matrix.append(list(temp_tab_rmbid_list))
 
-        list_of_dict = list()
         for index in range(len(tabs_list)):
             for rmbid in tabs_matrix[index]:
                 characteristic_list = [rmbid, tabs_list[index], \
@@ -110,6 +124,22 @@ class DataSet:
         if format == 'json':
             df_temp.to_json(path_or_buf=os.path.join(experiment_dir, file_name + '.json') ,orient='records')
             print(str(file_name) + '.json created')
+
+    def export_dataset_csv_json(self, suffix):
+        #NAME_TONIC_TYPE = ['not_filt', 'filt', 'sec']
+        #for i in range(len(FN_TONIC_TYPE)):
+        #    self.export_dataset(EXPERIMENT_DIR, suffix + NAME_TONIC_TYPE[i], FN_TONIC_TYPE[i], 'csv')
+        #    self.export_dataset(EXPERIMENT_DIR, suffix + NAME_TONIC_TYPE[i], FN_TONIC_TYPE[i], 'json')
+        self.export_dataset(EXPERIMENT_DIR, suffix, 'all', 'csv')# + "all"
+        self.export_dataset(EXPERIMENT_DIR, suffix, 'all', 'json')#+ "all"
+
+    def import_dataset_from_csv(self, path, file_name):
+        complete_path = os.path.join(path,file_name)
+        if not os.path.exists(complete_path):
+            raise Exception("Path {} doesn't exist".format(complete_path))
+        self.df_dataset = pd.read_csv(complete_path, sep = ';', encoding="utf-8", index_col=0)
+        print(self.df_dataset)
+
 
     def move_dataset_mp3(self, recordings_dir, experiment_mp3_dir):
 
