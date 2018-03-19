@@ -88,7 +88,6 @@ class CollectionMetadata:
                 counter += 1
 
 # -------------------------------------------------- RECORDING LISTS --------------------------------------------------
-
     def get_list_of_recordings(self):
         ''' get the list of all recording mbid in the the dataframe
 
@@ -163,10 +162,10 @@ class CollectionMetadata:
         flag = False
 
         for i in self.df_description.index.tolist():
-            if reference_mbid != self.df_description.loc[i, 'mbid']:
+            if reference_mbid != self.df_description.loc[i, COLUMNS_DESCRIPTION[0]]:
                 if flag == True:
                     list_mdib_diff.append(reference_mbid)
-                reference_mbid =  self.df_description.loc[i, 'mbid']
+                reference_mbid =  self.df_description.loc[i, COLUMNS_DESCRIPTION[0]]
                 temp_characteristic =  self.df_description.loc[i, characteristic]
                 flag = False
             else:
@@ -186,6 +185,32 @@ class CollectionMetadata:
             if not self.df_recording.loc[rec,attribute]:
                 recordings.append(rec)
         return recordings
+
+    def get_characteristic(self, rmbid, characteristic):
+        if not (characteristic in COLUMNS_DESCRIPTION[2:6]):
+            raise Exception("{} is not a valid characteristic".format(characteristic))
+        tab_list = list()
+        for i in self.df_description.index.tolist():
+            if rmbid == self.df_description.loc[i, COLUMNS_DESCRIPTION[0]]:
+                tab_list.append(self.df_description.loc[i, characteristic])
+
+        if len(set(tab_list)) == 0:
+            raise Exception("rmbid {} has not {} description".format(rmbid, characteristic))
+        if len(set(tab_list)) > 1:
+            raise Exception("rmbid {} has more than one {} in the same recording".format(rmbid, characteristic))
+        return tab_list[0]
+
+    def import_rmbid_list_from_file(self, path):
+        rmbid_list = list()
+        valid_rmbid_list = self.get_list_of_recordings()
+        with open(path, 'r') as f:
+            for line in f.readlines():
+                mbid = line.split("\n")[0]
+                if not(mbid in valid_rmbid_list):
+                    raise Exception("Rmbid {} is not in valid".format(mbid))
+                rmbid_list.append(mbid)
+
+        return rmbid_list
 
 # -------------------------------------------------- DATAFRAME --------------------------------------------------
 

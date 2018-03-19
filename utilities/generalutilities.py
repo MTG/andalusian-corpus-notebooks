@@ -5,8 +5,10 @@
 #__version__ = "0.1"
 
 import os
+import csv
 import time
 import pandas as pd
+import numpy as np
 import json
 
 def get_interval(end, start):
@@ -45,3 +47,9 @@ def list_intersection(a,b):
         if e in b:
             c.append(e)
     return c
+
+def gaussian(x, mu, sig):
+    return np.exp(-np.power(x - mu, 2.) / (2 * np.power(sig, 2.)))
+
+
+

@@ -8,11 +8,20 @@ import os
 import json
 import copy
 import numpy as np
+import scipy.integrate as integrate
+from scipy.spatial import distance
+# import scipy.spatial.distance.cityblock as cityblock
+# import scipy.spatial.distance.euclidean as euclidean
+# import scipy.spatial.distance.correlation as correlation
+# import scipy.spatial.distance.canberra as canberra
+
 import matplotlib.pyplot as plt
 from music21 import *
+from collections import deque
 
 from shutil import copyfile
 from utilities.constants import *
+from utilities.generalutilities import *
 from external_utilities.predominantmelodymakam import PredominantMelodyMakam
 from external_utilities.pitchfilter import PitchFilter
 from external_utilities.toniclastnote import TonicLastNote
@@ -506,9 +515,10 @@ def fold_histogram(x,y,cents,shift):
     # shift in cents
     x_shifted = list(range(-shift, cents - shift))
     y_shifted = y_folded[cents - shift:] + y_folded[0:cents - shift]
+    # normalize
+    y_shifted[:] = [y / sum(y_shifted) for y in y_shifted]
 
     return x_shifted, y_shifted
-
 
 def get_customized_histogram_from_rmbid_list(recording_folder, list_of_rmbid, type_tonic, folding_flag, center):
 
@@ -642,6 +652,249 @@ def get_customized_score_histogram(recordings_folder, mbid_list, fold_flag):
         return get_folded_score_histogram(recordings_folder, mbid_list)
     else:
         return get_unfolded_score_histogram(recordings_folder, mbid_list)
+
+def compute_folded_avg_scores(exp):
+    # get the different tab in the Training set
+    tab_list = exp.get_tab_list()
+    notes_avg_tab_list = list()
+    y_avg_tab_list = list()
+    # compute the avarage score bar for every tab
+    for tab in tab_list:
+        tab_mbid_list = exp.get_train_mbid_by_tab(tab)
+        list_notes_temp, y_temp = get_folded_score_histogram(RECORDINGS_DIR, tab_mbid_list)
+        # convert duration in percentage
+        tot_y_temp = sum(y_temp)
+        y_temp[:] = [y / tot_y_temp for y in y_temp]
+        notes_avg_tab_list.append(list_notes_temp)
+        y_avg_tab_list.append(y_temp)
+    return notes_avg_tab_list, y_avg_tab_list
+
+def convert_folded_scores_in_models(y_list, std):
+    # convert the score in distribution using gaussian
+    min_bound = -50
+    max_bound = 1150
+    interval = 100
+    num_bins = 1200
+    x_distribution = np.linspace(min_bound, max_bound, num_bins)
+    y_distribution_list = list()
+
+    for i in range(len(y_list)):
+        y_temp = [0] * len(x_distribution)
+        for j in range(len(y_list[i])):
+            c = std   # standard deviation
+            a = y_list[i][j]/ np.sqrt(2 * np.pi * np.power(c, 2.))  # curve height
+            b = j * 100  # center of the curve
+            y_temp += a * gaussian(x_distribution, b, c)
+        tot_curve = sum(y_temp)
+        y_temp[:] = [y / tot_curve for y in y_temp]
+        y_distribution_list.append(y_temp)
+
+    return x_distribution, y_distribution_list
+
+def get_tab_using_models_from_scores(exp, rmbid, y_models_list, distance_type):
+    if not (rmbid in exp.do.cm.get_list_of_recordings()):
+        raise Exception("rmbid {} does not exist in the corpora".format(rmbid))
+    if not (distance_type in exp.distance_measure):
+        raise Exception("distance {} is not a valid distance metric".format(distance))
+
+    # load the pitch distribution of the recording
+    vals, bins = load_pd(os.path.join(RECORDINGS_DIR, rmbid, 'audioanalysis--pitch_distribution.json'))
+    # use the max peak as fake_tonic
+    fake_tonic_index = vals.index(max(vals))
+    fake_tonic = bins[fake_tonic_index]
+
+    # calculate the unfolded pitch distribution with the fake tonic
+    histograms = {}
+    histograms[rmbid] = [[vals, bins], fake_tonic]
+    x, y = compute_overall_histogram(histograms)
+    x_reference, y_reference = fold_histogram(x, y, NUM_CENTS, 50)
+
+    recording_value_queue = deque(y_reference)
+
+
+    best_model = 0
+    best_distance_value = 0
+    best_shift = 0
+
+    for model_index in range(len(exp.y_avg_tab_list)):
+        for shift_value in range(NUM_CENTS):
+            shifted_recording_values = list(recording_value_queue)
+            distance_value = get_distance(exp, shifted_recording_values, y_models_list[model_index], distance_type)
+            recording_value_queue.rotate(1)
+            if distance_value > best_distance_value:
+                best_distance_value = distance_value
+                best_model = model_index
+                best_shift = shift_value
+    tablist = exp.get_tab_list()
+    return tablist[best_model]
+
+
+def get_distance(exp, shifted_recording, tab_model, distance_type):
+    # DISTANCE_MEASURES = ["city block (L1)", "euclidian (L2)", "correlation", "intersection", "camberra", "K-L"]
+
+    # city-block (L1)
+    if distance_type == exp.distance_measure[0]:
+        return 1 - distance.cityblock(shifted_recording, tab_model)
+    # euclidian (L2)
+    if distance_type == exp.distance_measure[1]:
+        return 1 - distance.euclidean(shifted_recording, tab_model)
+    # correlation
+    if distance_type == exp.distance_measure[2]:
+        return np.dot(shifted_recording, tab_model)
+    # intersection
+    if distance_type == exp.distance_measure[3]:
+        temp_min_function = np.minimum(shifted_recording, tab_model)
+        return sum(temp_min_function)
+    # camberra
+    if distance_type == exp.distance_measure[4]:
+        return -distance.canberra(shifted_recording, tab_model)
+
+# def get_tab_by_folded_score_cross(do, rmbid, y_avg_tab_list, std):
+#     if do.df_dataset is None:
+#         raise Exception("Dataset not created or imported")
+#     if do.X_mbid_train is None:
+#         raise Exception("Dataset not stratified")
+#     # if not (rmbid in cm.get_list_of_recordings):
+#     #    raise Exception("rmbid is does not exist in the corpora")
+#     if [rmbid] in do.X_mbid_train:
+#         raise Exception("rmbid {} is in the train set".format(rmbid))
+#     # comment this to use with other rmbid
+#     if not ([rmbid] in do.X_mbid_test):
+#         raise Exception("rmbid {} is not in the test set".format(rmbid))
+#
+#     # load the pitch distribution of the recording
+#     vals, bins = load_pd(os.path.join(RECORDINGS_DIR, rmbid, 'audioanalysis--pitch_distribution.json'))
+#     # use the max peak as fake_tonic
+#     fake_tonic_index = vals.index(max(vals))
+#     fake_tonic = bins[fake_tonic_index]
+#
+#     # calculate the unfolded pitch distribution with the fake tonic
+#     histograms = {}
+#     histograms[rmbid] = [[vals, bins], fake_tonic]
+#     x, y = compute_overall_histogram(histograms)
+#
+#     # calculate the folded distribution
+#     bests_shift = list()
+#     bests_correlation_index = list()
+#     bests_corralation_value = list()
+#     for i in range(len(y_avg_tab_list)):
+#         temp_best_shift = 0
+#         temp_best_correlation_index = 0
+#         temp_best_corralation_value = 0
+#         for j in range(12):
+#             x_f, y_f = fold_histogram(x, y, NUM_CENTS, 50 + 100 * j)
+#             #print("Fold_histogram_sum {}".format(sum(y_f)))
+#
+#             temp_corr = np.correlate(y_f, y_avg_tab_list[i], "full")# "valid","same","full"
+#
+#             xmin = len(y_f)-20
+#             xmax = len(y_f)+20+1
+#             #print("len temp corr: {}".format(len(temp_corr)))
+#             #print("max value: {}".format(max(temp_corr)))
+#             #print("max value index: {}".format(temp_corr.tolist().index(max(temp_corr))))
+#             #print(temp_corr[xmin:xmax])
+#             max_corr_value = np.max(temp_corr[xmin:xmax])
+#
+#             if max_corr_value > temp_best_corralation_value:
+#                 temp_best_corralation_value = max_corr_value
+#                 temp_best_correlation_index = temp_corr.tolist().index(max_corr_value)
+#                 temp_best_shift = j
+#
+#             plt.title("Shift: {} + Corr: {}".format(50 + 100 * j,max_corr_value + temp_best_correlation_index%1200))
+#             plt.plot(x_f, y_f, label = "recording")
+#             plt.plot(x_f, y_avg_tab_list[i], label = "model tab {}".format(do.get_list_of_dataset_tab()[i]))
+#             plt.show()
+#
+#         bests_shift.append(temp_best_shift)
+#         bests_correlation_index.append(temp_best_correlation_index)
+#         bests_corralation_value.append(temp_best_corralation_value)
+#
+#     #dict_corr_values = dict(zip(do.get_list_of_dataset_tab(), bests_corralation_value))
+#     # print(dict_corr_values)
+#     # print(max(bests_corralation_value))
+#     index = bests_corralation_value.index(max(bests_corralation_value))
+#     tab = do.get_list_of_dataset_tab()[index]
+#
+#     x_f, y_f = fold_histogram(x, y, NUM_CENTS, 50 + 100 * max(bests_shift))
+#     do.save_best_shifted_recording_plot(rmbid, x_f, y_f, y_avg_tab_list[index], 50 + 100 * max(bests_shift), 'std', std, tab)
+#     # print("Resulting ")
+#     # print("Tab {}".format(tab))
+#     # print("Shift {}".format(bests_shift[index]))
+#     return tab, max(bests_shift)
+#
+#
+# def get_tab_by_folded_score_auc(do, rmbid, y_avg_tab_list, std):
+#     if do.df_dataset is None:
+#         raise Exception("Dataset not created or imported")
+#     if do.X_mbid_train is None:
+#         raise Exception("Dataset not stratified")
+#     # if not (rmbid in cm.get_list_of_recordings):
+#     #    raise Exception("rmbid is does not exist in the corpora")
+#     if [rmbid] in do.X_mbid_train:
+#         raise Exception("rmbid {} is in the train set".format(rmbid))
+#     # comment this to use with other rmbid
+#     if not ([rmbid] in do.X_mbid_test):
+#         raise Exception("rmbid {} is not in the test set".format(rmbid))
+#
+#     # load the pitch distribution of the recording
+#     vals, bins = load_pd(os.path.join(RECORDINGS_DIR, rmbid, 'audioanalysis--pitch_distribution.json'))
+#     # use the max peak as fake_tonic
+#     fake_tonic_index = vals.index(max(vals))
+#     fake_tonic = bins[fake_tonic_index]
+#
+#     # calculate the unfolded pitch distribution with the fake tonic
+#     histograms = {}
+#     histograms[rmbid] = [[vals, bins], fake_tonic]
+#     x, y = compute_overall_histogram(histograms)
+#
+#     # find list of best shift, max area and correction for every tab
+#
+#     bests_shift_list = list()
+#     bests_correction_list = list()
+#     bests_max_area_list = list()
+#
+#     # for every model
+#     for i in range(len(y_avg_tab_list)):
+#         best_shift_tab = 0
+#         best_max_area_tab = 0
+#         best_correction_tab = 0
+#
+#         #for every 100 cent
+#         for j in range(12):
+#             temp_max_area_tab = 0
+#             temp_best_correction_tab = 0
+#
+#             # find best correction
+#             correction_value = 5
+#             for k in range(-correction_value,correction_value):
+#                 x_f, y_f = fold_histogram(x, y, NUM_CENTS, 50 + 100 * j + k)
+#
+#                 # compare the minimum value between every couple of values in the two distribution
+#                 temp_min_function = np.minimum(y_f,y_avg_tab_list[i])
+#                 temp_max_area = sum(temp_min_function)
+#
+#                 if temp_max_area > temp_max_area_tab:
+#                     temp_max_area_tab = temp_max_area
+#                     temp_best_correction_tab = k
+#
+#             if temp_max_area_tab > best_max_area_tab:
+#                 best_max_area_tab = temp_max_area_tab
+#                 best_shift_tab = j
+#                 best_correction_tab = temp_best_correction_tab
+#
+#         bests_shift_list.append(best_shift_tab)
+#         bests_max_area_list.append(best_max_area_tab)
+#         bests_correction_list.append(best_correction_tab)
+#
+#     index = bests_max_area_list.index(max(bests_max_area_list))
+#     tab = do.get_list_of_dataset_tab()[index]
+#
+#     x_f, y_f = fold_histogram(x, y, NUM_CENTS, 50 + 100 * max(bests_shift_list))
+#     do.save_best_shifted_recording_plot(rmbid, x_f, y_f, y_avg_tab_list[index], 50 + 100 * bests_shift_list[index] + bests_correction_list[index], 'std', std, tab)
+#     # print("Resulting ")
+#     # print("Tab {}".format(tab))
+#     # print("Shift {}".format(bests_shift[index]))
+#     return tab, 50 + 100 * bests_shift_list[index] + bests_correction_list[index]
 
 # --------------------------------------------------               --------------------------------------------------
 # -------------------------------------------------- OLD FUNCTIONS --------------------------------------------------
@@ -945,4 +1198,56 @@ def get_customized_score_histogram(recordings_folder, mbid_list, fold_flag):
 #
 #     # calculate pitch, tonic, pitch, filtered, pitch distribution for a recording
 #     compute_recording(data_folder_output + mbid + '/', mbid)
+# #
+# dataframe_list = list()
+# correct_tab_percentage_list = list()
+# correct_scale_percentage_list = list()
 #
+# for std in std_list:
+#
+#     x_model, y_models_list = convert_folded_scores_in_models(y_avg_tab_list, std)
+#     do.save_scores_models(notes_avg_tab_list, y_avg_tab_list, x_model, y_models_list, "std", std)
+#     rmbid_test_list, correct_tab_list = do.get_test_dataset()
+#     correct_tab_counter = 0
+#     correct_scale_counter = 0
+#     counter = 0
+#     ATTRIBUTES_EXP_DATAFRAME = ['mbid', 'tab', 'resulting_tab', 'scale', 'resulting_scale', 'best_shift']
+#     experiment_dataframe = pd.DataFrame(columns=ATTRIBUTES_EXP_DATAFRAME)
+#     for rmbid_test in rmbid_test_list:
+#         print(rmbid_test)
+#         index_in_test_list = rmbid_test_list.index(rmbid_test)
+#         correct_tab = correct_tab_list[index_in_test_list]
+#         correct_scale = get_scale_set(correct_tab)
+#         resulting_tab, best_shift = get_tab_by_folded_score_auc(do, rmbid_test, y_models_list, std)
+#         resulting_scale = get_scale_set(resulting_tab)
+#
+#         # insert in dataframe
+#         experiment_dataframe.loc[index_in_test_list] = [rmbid_test, correct_tab, resulting_tab, \
+#                                                         correct_scale, resulting_scale, best_shift]
+#
+#         # counters
+#         if correct_tab == resulting_tab:
+#             tab_detection = True
+#             correct_tab_counter += 1
+#         else:
+#             tab_detection = False
+#
+#         if correct_scale == resulting_scale:
+#             correct_scale_counter += 1
+#             scale_detection = True
+#         else:
+#             scale_detection = False
+#
+#         print("Shift: {}".format(best_shift))
+#         print("Correct_tab: {} - Resulting: {} => {}".format(correct_tab, resulting_tab, tab_detection))
+#         print("Correct_scale: {} - Resulting:{} => {}".format(correct_scale, resulting_scale, scale_detection))
+#     dataframe_list.append(experiment_dataframe)
+#     do.export_experiment_results_to_csv(experiment_dataframe, 'std', std)
+#     print()
+#     print("------------------------------------")
+#     print("Tab Detection: {}".format(correct_tab_counter / len(correct_tab_list)))
+#     print("Scale Detection: {}".format(correct_scale_counter / len(correct_tab_list)))
+#     print("------------------------------------")
+#     print()
+#     correct_tab_percentage_list.append(correct_tab_counter / len(correct_tab_list))
+#     correct_scale_percentage_list.append(correct_scale_counter / len(correct_tab_list))
