@@ -18,7 +18,7 @@ from utilities.generalutilities import *
 from utilities.recordingcomputation import *
 
 # -------------------------------------------------- TONIC COMPARISON --------------------------------------------------
-class TonicComparison:
+class NawbaComparison:
 
     def __init__(self, MetadataObject):
         self.cm = MetadataObject
@@ -29,12 +29,12 @@ class TonicComparison:
         checkboxes_labels = ["Single recording PD with not filtered tonic", \
                              "Single Recording PD with filtered tonic", \
                              "Single Recording PD with sections tonic", \
-                             "Overall Tab PD with not filtered tonic", \
-                             "Overall Tab PD with filtered tonic", \
-                             "Overall Tab PD with sections tonic", \
-                             "Average Tab PD with not filtered tonic", \
-                             "Avarage Tab PD with filtered tonic",
-                             "Avarage Tab PD with sections tonic"]
+                             "Overall nawba PD with not filtered tonic", \
+                             "Overall nawba PD with filtered tonic", \
+                             "Overall nawba PD with sections tonic", \
+                             "Average nawba PD with not filtered tonic", \
+                             "Avarage nawba PD with filtered tonic",
+                             "Avarage nawba PD with sections tonic"]
 
         self.graphs_checkboxes = list()
         for cb in checkboxes_labels:
@@ -46,14 +46,14 @@ class TonicComparison:
 
         # second column:
 
-        # Dropdown menu tab
+        # Dropdown menu nawba
         key_list = list()
         values_list = list()
-        for row in self.cm.get_dataframe(DF_LISTS[1]).index.tolist():
-            key_list.append(str(row) + ' - ' + str(self.cm.convert_id(row, DF_LISTS[1], COLUMNS_NAMES[1])))
+        for row in self.cm.get_dataframe(DF_LISTS[2]).index.tolist():
+            key_list.append(str(row) + ' - ' + str(self.cm.convert_id(row, DF_LISTS[2], COLUMNS_NAMES[1])))
             values_list.append(row)
         vals = list(zip(key_list, values_list))
-        self.tab_widget = widgets.Dropdown(options=vals, \
+        self.nawba_widget = widgets.Dropdown(options=vals, \
                                        value=1, layout=widgets.Layout(width='80%'))
 
         # Dropdown menu alignment
@@ -64,7 +64,7 @@ class TonicComparison:
         self.fold_widget = widgets.Checkbox(value=False, description="Fold graphs", indent=False)
 
         label2 = widgets.Label("Options:")
-        column2 = widgets.VBox([label2, self.tab_widget, self.align_dropdown, self.fold_widget])
+        column2 = widgets.VBox([label2, self.nawba_widget, self.align_dropdown, self.fold_widget])
 
         row1 = widgets.HBox([column1,column2])
 
@@ -83,11 +83,11 @@ class TonicComparison:
         avg_filt = self.graphs_checkboxes[7].value
         avg_sec = self.graphs_checkboxes[8].value
 
-        tab = self.tab_widget.value
+        nawba = self.nawba_widget.value
         align = self.align_dropdown.value
         fold = self.fold_widget.value
 
-        not_checked_mbid_list = self.cm.search_recording(tab,'all','all','all')
+        not_checked_mbid_list = self.cm.search_recording('all', nawba, 'all','all')
 
         mbid_list = check_files_of_rmbid_lists(RECORDINGS_DIR, not_checked_mbid_list, ['score', 'analysis json'], [True,True])
 
@@ -103,13 +103,13 @@ class TonicComparison:
         if overall_tonic or overall_filtered or overall_sec:
             if overall_tonic:
                 x3, y3 = get_customized_histogram_from_rmbid_list(RECORDINGS_DIR, mbid_list, FN_TONIC_NO_FILT, fold, align)
-                label_all_tonic = 'Overall Tab PD - Not Filtered Tonic'
+                label_all_tonic = 'Overall nawba PD - Not Filtered Tonic'
             if overall_filtered:
                 x4, y4 = get_customized_histogram_from_rmbid_list(RECORDINGS_DIR, mbid_list, FN_TONIC_FILT, fold, align)
-                label_all_tonic_filt = 'Overall Tab PD - Filtered Tonic'
+                label_all_tonic_filt = 'Overall nawba PD - Filtered Tonic'
             if overall_sec:
                 x4sec, y4sec = get_customized_histogram_from_rmbid_list(RECORDINGS_DIR, mbid_list, FN_TONIC_SEC, fold, align)
-                label_all_tonic_sec = 'Overall Tab PD - Sections Tonic'
+                label_all_tonic_sec = 'Overall nawba PD - Sections Tonic'
 
             # score
             x2s, y2s = get_customized_score_histogram(RECORDINGS_DIR, mbid_list, fold)
@@ -119,17 +119,17 @@ class TonicComparison:
         if avg_tonic or avg_filt or avg_sec:
             if avg_tonic:
                 x5, y5 = get_customized_histogram_from_rmbid_list(RECORDINGS_DIR, mbid_list, FN_TONIC_NO_FILT, fold, align)
-                label_avg_tonic = 'Avarage Tab PD - Not Filtered Tonic'
+                label_avg_tonic = 'Avarage nawba PD - Not Filtered Tonic'
                 y5[:] = [y / len(mbid_list) for y in y5] # NB: if the histogram is centered, the result could be not reliable
 
             if avg_filt:
                 x6, y6 = get_customized_histogram_from_rmbid_list(RECORDINGS_DIR, mbid_list, FN_TONIC_FILT, fold, align)
-                label_avg_tonic_filt = 'Avarage Tab PD - Filtered Tonic'
+                label_avg_tonic_filt = 'Avarage nawba PD - Filtered Tonic'
                 y6[:] = [y / len(mbid_list) for y in y6]
 
             if avg_sec:
                 x6sec, y6sec = get_customized_histogram_from_rmbid_list(RECORDINGS_DIR, mbid_list, FN_TONIC_SEC, fold, align)
-                label_avg_tonic_sec = 'Avarage Tab PD - Sections Tonic'
+                label_avg_tonic_sec = 'Avarage nawba PD - Sections Tonic'
                 y6sec[:] = [y / len(mbid_list) for y in y6sec]
 
             x3s, y3s = get_customized_score_histogram(RECORDINGS_DIR, mbid_list, fold)

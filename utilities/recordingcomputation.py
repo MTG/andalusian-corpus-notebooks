@@ -7,6 +7,7 @@
 import os
 import json
 import copy
+import pandas as pd
 import numpy as np
 import scipy.integrate as integrate
 from scipy.spatial import distance
@@ -654,20 +655,20 @@ def get_customized_score_histogram(recordings_folder, mbid_list, fold_flag):
         return get_unfolded_score_histogram(recordings_folder, mbid_list)
 
 def compute_folded_avg_scores(exp):
-    # get the different tab in the Training set
-    tab_list = exp.get_tab_list()
-    notes_avg_tab_list = list()
-    y_avg_tab_list = list()
-    # compute the avarage score bar for every tab
-    for tab in tab_list:
-        tab_mbid_list = exp.get_train_mbid_by_tab(tab)
-        list_notes_temp, y_temp = get_folded_score_histogram(RECORDINGS_DIR, tab_mbid_list)
+    # get the different nawba in the Training set
+    nawba_list = exp.get_nawba_list()
+    notes_avg_nawba_list = list()
+    y_avg_nawba_list = list()
+    # compute the avarage score bar for every nawba
+    for nawba in nawba_list:
+        nawba_mbid_list = exp.get_train_mbid_by_nawba(nawba)
+        list_notes_temp, y_temp = get_folded_score_histogram(RECORDINGS_DIR, nawba_mbid_list)
         # convert duration in percentage
         tot_y_temp = sum(y_temp)
         y_temp[:] = [y / tot_y_temp for y in y_temp]
-        notes_avg_tab_list.append(list_notes_temp)
-        y_avg_tab_list.append(y_temp)
-    return notes_avg_tab_list, y_avg_tab_list
+        notes_avg_nawba_list.append(list_notes_temp)
+        y_avg_nawba_list.append(y_temp)
+    return notes_avg_nawba_list, y_avg_nawba_list
 
 def convert_folded_scores_in_models(y_list, std):
     # convert the score in distribution using gaussian
@@ -691,7 +692,7 @@ def convert_folded_scores_in_models(y_list, std):
 
     return x_distribution, y_distribution_list
 
-def get_tab_using_models_from_scores(exp, rmbid, y_models_list, distance_type):
+def get_nawba_using_models_from_scores(exp, rmbid, y_models_list, distance_type):
     if not (rmbid in exp.do.cm.get_list_of_recordings()):
         raise Exception("rmbid {} does not exist in the corpora".format(rmbid))
     if not (distance_type in exp.distance_measure):
@@ -713,41 +714,51 @@ def get_tab_using_models_from_scores(exp, rmbid, y_models_list, distance_type):
 
 
     best_model = 0
-    best_distance_value = 0
+    best_distance_value = 100000
     best_shift = 0
 
-    for model_index in range(len(exp.y_avg_tab_list)):
+    nawba_list = exp.get_nawba_list()
+    #print(nawba_list)
+    #df_results_temp = pd.DataFrame(columns=nawba_list, index = range(NUM_CENTS))
+
+
+    for model_index in range(len(exp.y_avg_nawba_list)):
         for shift_value in range(NUM_CENTS):
             shifted_recording_values = list(recording_value_queue)
             distance_value = get_distance(exp, shifted_recording_values, y_models_list[model_index], distance_type)
+            #df_results_temp.loc[shift_value, nawba_list[model_index]] = distance_value
             recording_value_queue.rotate(1)
-            if distance_value > best_distance_value:
+            if distance_value < best_distance_value:
                 best_distance_value = distance_value
                 best_model = model_index
                 best_shift = shift_value
-    tablist = exp.get_tab_list()
-    return tablist[best_model]
+    #print("{} - {}".format(rmbid, distance_type))
+    #print(df_results_temp)
+
+    nawba_list = exp.get_nawba_list()
+    #print(nawba_list[best_model])
+    return nawba_list[best_model]
 
 
-def get_distance(exp, shifted_recording, tab_model, distance_type):
+def get_distance(exp, shifted_recording, nawba_model, distance_type):
     # DISTANCE_MEASURES = ["city block (L1)", "euclidian (L2)", "correlation", "intersection", "camberra", "K-L"]
 
     # city-block (L1)
     if distance_type == exp.distance_measure[0]:
-        return 1 - distance.cityblock(shifted_recording, tab_model)
+        return distance.cityblock(shifted_recording, nawba_model)
     # euclidian (L2)
     if distance_type == exp.distance_measure[1]:
-        return 1 - distance.euclidean(shifted_recording, tab_model)
+        return distance.euclidean(shifted_recording, nawba_model)
     # correlation
     if distance_type == exp.distance_measure[2]:
-        return np.dot(shifted_recording, tab_model)
+        return 1/np.dot(shifted_recording, nawba_model)
     # intersection
     if distance_type == exp.distance_measure[3]:
-        temp_min_function = np.minimum(shifted_recording, tab_model)
-        return sum(temp_min_function)
+        temp_min_function = np.minimum(shifted_recording, nawba_model)
+        return 1/sum(temp_min_function)
     # camberra
     if distance_type == exp.distance_measure[4]:
-        return -distance.canberra(shifted_recording, tab_model)
+        return distance.canberra(shifted_recording, nawba_model)
 
 # def get_tab_by_folded_score_cross(do, rmbid, y_avg_tab_list, std):
 #     if do.df_dataset is None:
