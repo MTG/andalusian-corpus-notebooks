@@ -8,11 +8,12 @@ import os
 import json
 import copy
 import random
+import itertools
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from music21 import *
-
+from sklearn.metrics import confusion_matrix
 from sklearn.model_selection import train_test_split
 from shutil import copyfile
 from utilities.constants import *
@@ -21,78 +22,79 @@ from external_utilities.corpusbasestatistics import *
 
 # ---------------------------------------- DATASET -------------------------------------------------
 
-#TAB_DATASET = [1, 2, 3, 5, 9, 10, 14, 16, 18]
-#TAB_FUNDAMENTAL_GRADE_IT = ["DO", "RE", "RE", "RE", "DO", "RE", "SOL", "RE", "DO"]
-#TAB_FUNDAMENTAL_GRADE = [ "C", "D", "D", "D", "C", "D", "G", "D", "C"]
-ATTRIBUTES = ["mbid", "tab", "tonic_not_filt", "tonic_filt", "tonic_sec", "verified", "observation"]
-DATASET_ATTRIBUTES = ["tab", "scale"]
+DATASET_ATTRIBUTES = [DF_LISTS[2]]
 DISTANCE_MEASURES = ["city block (L1)", "euclidian (L2)", "correlation", "intersection", "camberra"]
 
 class DataSet:
 
-    def __init__(self, cm, exp_name, rmbid_list, tab_list, scale_division):
+    def __init__(self, cm, rmbid_list = []):
+        ''' Constructor to create an object Dataset
+
+        :param cm: Metadata Object
+        :param rmbid_list: list of recording mbids
+        '''
         self.cm = cm
-        self.tab_list = tab_list
-        self.scale_division = scale_division
-        # create a directory for the experiment
-        exp_dir = os.path.join(EXPERIMENT_DIR, exp_name)
-        if not os.path.exists(exp_dir):
-            os.makedirs(exp_dir)
-            print("Directory {} created".format(exp_dir))
-        self.exp_dir = exp_dir
-        self.exp_name = exp_name
+        self.rmbid_list = rmbid_list
+        self.nawba_list = []
 
-        # create a dataframe from the rmbid_list checking if the tab of every rmbid is in
-        # the tab list passed as parameter
-        self.df_dataset = pd.DataFrame(columns = DATASET_ATTRIBUTES, index=rmbid_list)
+        # create an empty dataframe
+        self.df_dataset = pd.DataFrame(columns=DATASET_ATTRIBUTES)
+
+        # check if the mbid list of the recordings are empty
+        if len(rmbid_list) > 0:
+            self.add_rmbid_list_to_dataframe(rmbid_list)
+
+    def add_rmbid_list_to_dataframe(self, rmbid_list):
+        # check if the list of mbid in the corpora
+        correct_list, incorrect_list = self.cm.check_rmbid_list_before_download(rmbid_list)
+        if len(incorrect_list) > 0:
+            raise Exception("The mbid\s {} are not in Dunya".format(incorrect_list))
         for rmbid in rmbid_list:
-            rmbid_tab = cm.get_characteristic(rmbid, COLUMNS_DESCRIPTION[2])
-            if not (rmbid_tab in tab_list):
-                raise Exception("Tab {} of the recording {} is not included in the experiment".format(rmbid_tab, rmbid))
-            rmbid_scale = self.get_scale_index_from_tab(rmbid_tab)
-            self.df_dataset.loc[rmbid, DATASET_ATTRIBUTES[0]] = rmbid_tab
-            self.df_dataset.loc[rmbid, DATASET_ATTRIBUTES[1]] = rmbid_scale
+            # get the nawba information
+            rmbid_nawba = self.cm.get_characteristic(rmbid, DATASET_ATTRIBUTES[0])
+            self.df_dataset.loc[rmbid, DATASET_ATTRIBUTES[0]] = int(rmbid_nawba)
+            if not (rmbid_nawba in self.nawba_list):
+                self.nawba_list.append(rmbid_nawba)
+        self.nawba_list = sorted(self.nawba_list)
 
-    def get_scale_index_from_tab(self, tab):
-        ''' Return the scale related to tab passed as parameter
+    def get_nawba_list(self):
+        ''' Return the list of nawba included in the experiment
 
-        :param tab: index of the tab
-        :return: related scale
+        :return: list of nawba indexes
         '''
-        list_of_scale_index = list()
-        for i in range(len(self.scale_division)):
-            if tab in self.scale_division[i]:
-                list_of_scale_index.append(i)
+        return self.nawba_list
 
-        if len(list_of_scale_index) == 0:
-            raise Exception("Tab {} has not scale information".format(tab))
-        if len(list_of_scale_index) > 1:
-            raise Exception("Tab {} has more than one scale".format(tab))
-        return list_of_scale_index[0]
+    def get_list_of_recording_per_nawba(self, nawba_index):
+        ''' Return the list of the rmbid in the dataset with a specified nawba
 
-    def get_tab_list(self):
-        ''' Return the list of tab included in the experiment
-
-        :return: list of tab indexes
-        '''
-        return self.tab_list
-
-    def get_list_of_recording_per_tab(self, tab):
-        ''' Return the list of the rmbid in the dataset with a specified tab
-
-        :param tab_index: index of the tab
+        :param nawba_index: index of the nawba
         :return: list of rmbid
         '''
         rmbid_list = list()
         for rmbid in self.df_dataset.index.values.tolist():
-            if self.df_dataset.loc[rmbid, DATASET_ATTRIBUTES[0]] == tab:
+            if self.df_dataset.loc[rmbid, DATASET_ATTRIBUTES[0]] == nawba_index:
                 rmbid_list.append(rmbid)
         return rmbid_list
 
     def get_dataset_dataframe(self):
+        ''' the entire dataframe with rmbid and related nawba
+
+        :return: pandas dataframe
+        '''
         return self.df_dataset
 
-class Tab_Scale_Recognition_Experiment:
+    def get_rmbid_list(self):
+        ''' Get the list of the recordings in the dataset
+
+        :return:
+        '''
+        return self.rmbid_list
+
+    def import_dataset_from_csv(self, path):
+        rmbid_list = self.cm.import_rmbid_list_from_file(path)
+        self.add_rmbid_list_to_dataframe(rmbid_list)
+
+class Nawba_Recognition_Experiment:
 
     def __init__(self, dataset_object, test_size, random_state, standard_deviation_list):
 
@@ -118,9 +120,10 @@ class Tab_Scale_Recognition_Experiment:
             for measure in DISTANCE_MEASURES:
                 self.experiment_attributes.append("{}-{}".format(attr, measure))
 
-        self.summary_attributes = copy.deepcopy(self.experiment_attributes)
-        self.summary_attributes.remove(DATASET_ATTRIBUTES[0])
-        self.summary_attributes.remove(DATASET_ATTRIBUTES[1])
+        self.summary_attributes = list()
+        for attr in DATASET_ATTRIBUTES:
+            for measure in DISTANCE_MEASURES:
+                self.summary_attributes.append("{}-{}".format(attr, measure))
 
         # one dataframe for every standard deviation
         self.df_experiment_list = list()
@@ -130,19 +133,19 @@ class Tab_Scale_Recognition_Experiment:
         self.df_summary = pd.DataFrame(0, columns=self.summary_attributes, index = standard_deviation_list)
 
         # create the histograms of the duration of the notes
-        self.notes_avg_tab_list, self.y_avg_tab_list = compute_folded_avg_scores(self)
+        self.notes_avg_nawba_list, self.y_avg_nawba_list = compute_folded_avg_scores(self)
 
-    def get_train_mbid_by_tab(self, tab):
+    def get_train_mbid_by_nawba(self, nawba):
         rmbid_list = list()
         for i in range(len(self.y_train)):
-            if self.y_train[i] == tab:
+            if self.y_train[i] == nawba:
                 rmbid_list.append(self.X_mbid_train[i])
         return rmbid_list
 
-    def get_test_mbid_by_tab(self, tab):
+    def get_test_mbid_by_nawba(self, nawba):
         rmbid_list = list()
         for i in range(len(self.y_test)):
-            if self.y_test[i] == tab:
+            if self.y_test[i] == nawba:
                 rmbid_list.append(self.X_mbid_test[i])
         return rmbid_list
 
@@ -152,8 +155,8 @@ class Tab_Scale_Recognition_Experiment:
             rmbid_list.append(self.X_mbid_test[i])
         return rmbid_list, self.y_test
 
-    def get_tab_list(self):
-        return self.do.get_tab_list()
+    def get_nawba_list(self):
+        return self.do.get_nawba_list()
 
     def run(self):
         counter_1 = 0
@@ -161,43 +164,147 @@ class Tab_Scale_Recognition_Experiment:
         for i in range(len(self.std_list)):
 
             # convert notes histograms in models
-            x_model, y_models_list = convert_folded_scores_in_models(self.y_avg_tab_list, self.std_list[i])
+            x_model, y_models_list = convert_folded_scores_in_models(self.y_avg_nawba_list, self.std_list[i])
 
+            count = 0
             # for every recording in the test set
             for rmbid in self.df_experiment_list[i].index.values.tolist():
+                count += 1
+                print(count)
                 self.df_experiment_list[i].loc[rmbid, DATASET_ATTRIBUTES[0]] = self.do.df_dataset.loc[rmbid, DATASET_ATTRIBUTES[0]]
-                self.df_experiment_list[i].loc[rmbid, DATASET_ATTRIBUTES[1]] = self.do.df_dataset.loc[rmbid, DATASET_ATTRIBUTES[1]]
 
                 for distance_type in DISTANCE_MEASURES:
-                    resulting_tab = get_tab_using_models_from_scores(self, rmbid, y_models_list, distance_type)
-                    column_tab = "{}-{}".format(DATASET_ATTRIBUTES[0], distance_type)
-                    self.df_experiment_list[i].loc[rmbid,column_tab] = resulting_tab
-                    resulting_scale = self.do.get_scale_index_from_tab(resulting_tab)
-                    column_scale = "{}-{}".format(DATASET_ATTRIBUTES[1], distance_type)
-                    self.df_experiment_list[i].loc[rmbid, column_scale] = resulting_scale
+                    resulting_nawba = get_nawba_using_models_from_scores(self, rmbid, y_models_list, distance_type)
+                    column_nawba = "{}-{}".format(DATASET_ATTRIBUTES[0], distance_type)
+                    self.df_experiment_list[i].loc[rmbid,column_nawba] = resulting_nawba
 
-            print(self.std_list[i])
-            print(self.df_experiment_list[i])
+            #print(self.std_list[i])
+            #print(self.df_experiment_list[i])
 
     def compute_summary(self):
 
         for i in range(len(self.std_list)):
             for distance_type in DISTANCE_MEASURES:
                 for rmbid in self.df_experiment_list[i].index.values.tolist():
-                    tab_attributes = "{}-{}".format(DATASET_ATTRIBUTES[0], distance_type)
-                    scale_attributes = "{}-{}".format(DATASET_ATTRIBUTES[1], distance_type)
-                    resulting_tab = self.df_experiment_list[i].loc[rmbid, tab_attributes]
-                    resulting_scale = self.df_experiment_list[i].loc[rmbid, scale_attributes]
-                    correct_tab = self.df_experiment_list[i].loc[rmbid, DATASET_ATTRIBUTES[0]]
-                    correct_scale = self.df_experiment_list[i].loc[rmbid, DATASET_ATTRIBUTES[1]]
-                    if resulting_tab == correct_tab:
-                        self.df_summary.loc[self.std_list[i], tab_attributes] +=1
-                    if resulting_scale == correct_scale:
-                        self.df_summary.loc[self.std_list[i], scale_attributes] += 1
-        self.df_summary.loc[:,:] /= len(self.df_experiment_list[0].index.values.tolist())
-        print(self.df_summary)
+                    nawba_attributes = "{}-{}".format(DATASET_ATTRIBUTES[0], distance_type)
+                    resulting_nawba = self.df_experiment_list[i].loc[rmbid, nawba_attributes]
+                    correct_nawba = self.df_experiment_list[i].loc[rmbid, DATASET_ATTRIBUTES[0]]
+                    if resulting_nawba == correct_nawba:
+                        self.df_summary.loc[self.std_list[i], nawba_attributes] +=1
 
-# -------------------------------------------------- OLD --------------------------------------------------
+        self.df_summary.loc[:,:] /= len(self.df_experiment_list[0].index.values.tolist())
+        #print(self.df_summary)
+
+    def compute_confusion_matrix(self, distance, std):
+
+        index_std = self.std_list.index(std)
+        y_pred = list()
+        for rmbid in self.df_experiment_list[index_std].index.values.tolist():
+            y_pred.append(self.df_experiment_list[index_std].loc[rmbid, distance])
+
+        cnf_matrix = confusion_matrix(self.y_test, y_pred)
+        return cnf_matrix
+
+
+def plot_confusion_matrix(cm, classes,
+                          normalize=False,
+                          title='Confusion matrix',
+                          cmap=plt.cm.Blues, plot=False, path_directory=""):
+    """
+    This function prints and plots the confusion matrix.
+    Normalization can be applied by setting `normalize=True`.
+    """
+    if normalize:
+        cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
+        title = "{} - normalized".format(title)
+    plt.figure()
+    plt.imshow(cm, interpolation='nearest', cmap=cmap)
+    plt.title(title)
+    plt.colorbar()
+    tick_marks = np.arange(len(classes))
+    plt.xticks(tick_marks, classes, rotation=45)
+    plt.yticks(tick_marks, classes)
+
+    fmt = '.2f' if normalize else 'd'
+    thresh = cm.max() / 2.
+    for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
+        plt.text(j, i, format(cm[i, j], fmt),
+                 horizontalalignment="center",
+                 color="white" if cm[i, j] > thresh else "black")
+
+    plt.tight_layout()
+    plt.ylabel('True label')
+    plt.xlabel('Predicted label')
+
+    if print:
+        if not os.path.exists(path_directory) and not path_directory =="":
+            os.makedirs(path_directory)
+        file_name_path = os.path.join(path_directory, title)
+        plt.savefig(file_name_path, dpi=300)
+
+    plt.show()
+
+
+
+def calculate_overall_confusion_matrix(experiment_list, distance, std):
+    cnf_list = list()
+    df_cnf_list = list()
+    for experiment in experiment_list:
+        cnf_temp = experiment.compute_confusion_matrix(distance, std)
+        cnf_list.append(cnf_temp)
+        header = range(len(cnf_temp))
+        df_temp = pd.DataFrame(0, columns=header, index=header)
+        for i in header:
+            for j in header:
+                df_temp.loc[i,j] = cnf_temp[i][j]
+        df_cnf_list.append(df_temp)
+
+    df_cnf_total = df_cnf_list[0]
+    for i in range(1,len(df_cnf_list)):
+        df_cnf_total = df_cnf_total.add(df_cnf_list[i])
+
+    return np.asarray(df_cnf_total.values.tolist())
+
+def export_overall_experiment(experiment_list, name, path_ditectory=""):
+    # create the main directory
+    overall_experiment_path = os.path.join(path_ditectory, name)
+    suffix = "exp_"
+    for i in range(len(experiment_list)):
+        exp_path = os.path.join(overall_experiment_path, suffix + str(i))
+        if not os.path.exists(exp_path):
+            os.makedirs(exp_path)
+
+        for j in range(len(experiment_list[0].std_list)):
+            experiment_result_filename = "exp_{} - {}.csv".format(i, experiment_list[i].std_list[j])
+            path_filename_result = os.path.join(exp_path, experiment_result_filename)
+            experiment_list[i].df_experiment_list[j].to_csv(path_filename_result, sep=';', encoding="utf-8")
+        summary_filename = "exp_{} - summary.csv".format(i)
+        path_filename_summary = os.path.join(exp_path, summary_filename)
+        experiment_list[i].df_summary.to_csv(path_filename_summary, sep=';', encoding="utf-8")
+
+    df_overall = experiment_list[0].df_summary
+    for index in range(len(experiment_list) - 1):
+        df_overall = df_overall.add(experiment_list[index + 1].df_summary)
+    df_overall = df_overall.divide(len(experiment_list))
+    overall_filename = "overall_results.csv"
+    path_filename_overall = os.path.join(overall_experiment_path, overall_filename)
+    df_overall.to_csv(path_filename_overall, sep=';', encoding="utf-8")
+
+    # find best result
+    max_value_index = df_overall.max().values.tolist().index(max(df_overall.max().values.tolist()))
+    max_distance = df_overall.columns.tolist()[max_value_index]
+    index_value = df_overall[max_distance].tolist().index(max(df_overall[max_distance].tolist()))
+    max_std = df_overall.index.values.tolist()[index_value]
+    overall_conf_matrix = calculate_overall_confusion_matrix(experiment_list, max_distance, max_std)
+    classes = experiment_list[0].get_nawba_list()
+    plot_confusion_matrix(overall_conf_matrix, classes, normalize=False,
+                          title="Confusion matrix - {} - {}".format(max_distance, max_std), cmap=plt.cm.Blues,
+                          plot=True, path_directory=overall_experiment_path)
+    plot_confusion_matrix(overall_conf_matrix, classes, normalize=True,
+                          title="Confusion matrix - {} - {}".format(max_distance, max_std), cmap=plt.cm.Blues,
+                          plot=True, path_directory=overall_experiment_path)
+
+    # -------------------------------------------------- OLD --------------------------------------------------
 
     def create_equal_distributed_tabs_dataset(self, tabs_list, num_recording_per_tab, not_valid_rmbid_list):
         ''' Create a dataset of random recordings by using the tabs contained in the list passed by input.

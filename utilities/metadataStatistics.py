@@ -201,6 +201,9 @@ class CollectionMetadata:
         return tab_list[0]
 
     def import_rmbid_list_from_file(self, path):
+        if not os.path.exists(path):
+            raise Exception("Path {} does not exist".format(path))
+
         rmbid_list = list()
         valid_rmbid_list = self.get_list_of_recordings()
         with open(path, 'r') as f:
