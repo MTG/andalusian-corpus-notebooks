@@ -170,14 +170,14 @@ class Nawba_Recognition_Experiment:
             # for every recording in the test set
             for rmbid in self.df_experiment_list[i].index.values.tolist():
                 count += 1
-                print(count)
+                #print(count)
                 self.df_experiment_list[i].loc[rmbid, DATASET_ATTRIBUTES[0]] = self.do.df_dataset.loc[rmbid, DATASET_ATTRIBUTES[0]]
 
                 for distance_type in DISTANCE_MEASURES:
                     resulting_nawba = get_nawba_using_models_from_scores(self, rmbid, y_models_list, distance_type)
                     column_nawba = "{}-{}".format(DATASET_ATTRIBUTES[0], distance_type)
                     self.df_experiment_list[i].loc[rmbid,column_nawba] = resulting_nawba
-
+            print(" - sub_exp_{} completed".format(self.std_list[i]))
             #print(self.std_list[i])
             #print(self.df_experiment_list[i])
 
@@ -270,15 +270,15 @@ def export_overall_experiment(experiment_list, name, path_ditectory=""):
     overall_experiment_path = os.path.join(path_ditectory, name)
     suffix = "exp_"
     for i in range(len(experiment_list)):
-        exp_path = os.path.join(overall_experiment_path, suffix + str(i))
+        exp_path = os.path.join(overall_experiment_path, suffix + str(i+1))
         if not os.path.exists(exp_path):
             os.makedirs(exp_path)
 
         for j in range(len(experiment_list[0].std_list)):
-            experiment_result_filename = "exp_{} - {}.csv".format(i, experiment_list[i].std_list[j])
+            experiment_result_filename = "exp_{} - {}.csv".format(i+1, experiment_list[i].std_list[j])
             path_filename_result = os.path.join(exp_path, experiment_result_filename)
             experiment_list[i].df_experiment_list[j].to_csv(path_filename_result, sep=';', encoding="utf-8")
-        summary_filename = "exp_{} - summary.csv".format(i)
+        summary_filename = "exp_{} - summary.csv".format(i+1)
         path_filename_summary = os.path.join(exp_path, summary_filename)
         experiment_list[i].df_summary.to_csv(path_filename_summary, sep=';', encoding="utf-8")
 

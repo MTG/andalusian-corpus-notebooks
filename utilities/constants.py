@@ -43,7 +43,7 @@ ACCEPTED_TYPE = ['mp3', 'score', 'wav', FN_PITCH, FNT_PITCH, FN_TONIC_NO_FILT, F
 
 # Path in Dunya
 API_PATH = 'api/andalusian/'
-DUNYA_TOKEN = '' # put your DUNYA_TOKEN here
+DUNYA_TOKEN = '1caad80ef12b4d47accfd26b01c9062da834825f' # put your DUNYA_TOKEN here
 
 # GUI
 OPTION_LIST = ['mp3', 'score', 'MB metadata', 'analysis json', 'analysis text', 'wav']
