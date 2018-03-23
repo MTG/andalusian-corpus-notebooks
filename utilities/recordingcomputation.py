@@ -735,7 +735,14 @@ def get_nawba_using_models_from_scores(exp, rmbid, y_models_list, distance_type)
     #print("{} - {}".format(rmbid, distance_type))
     #print(df_results_temp)
 
+    # need to print the best
+    best_y = deque(y_reference)
+    best_y.rotate(best_shift)
+
     nawba_list = exp.get_nawba_list()
+    path_dir = os.path.join(EXPERIMENT_DIR, "comparison")  # TODO: put saved figures in the same directory of the experiment
+    #exp.save_best_shifted_recording_plot(rmbid, x_reference, y_models_list[best_model], best_y, best_shift, nawba_list[best_model], path_dir)
+
     #print(nawba_list[best_model])
     return nawba_list[best_model]
 

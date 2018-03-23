@@ -9,6 +9,7 @@ import json
 import copy
 import random
 import itertools
+import matplotlib
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -20,10 +21,13 @@ from utilities.constants import *
 from utilities.recordingcomputation import *
 from external_utilities.corpusbasestatistics import *
 
+font = {'size'   : '40'}
+
+matplotlib.rc('font', **font)
 # ---------------------------------------- DATASET -------------------------------------------------
 
 DATASET_ATTRIBUTES = [DF_LISTS[2]]
-DISTANCE_MEASURES = ["city block (L1)", "euclidian (L2)", "correlation", "intersection", "camberra"]
+DISTANCE_MEASURES = ["city block (L1)"] #["city block (L1)", "euclidian (L2)", "correlation", "intersection", "canberra"]
 
 class DataSet:
 
@@ -165,6 +169,10 @@ class Nawba_Recognition_Experiment:
 
             # convert notes histograms in models
             x_model, y_models_list = convert_folded_scores_in_models(self.y_avg_nawba_list, self.std_list[i])
+            # save figures
+            path_dir = os.path.join(EXPERIMENT_DIR, "template") # TODO: put saved figures in the same directory of the experiment
+            #self.save_scores_models(self.notes_avg_nawba_list, self.y_avg_nawba_list, x_model, y_models_list, "40", path_dir)
+
 
             count = 0
             # for every recording in the test set
@@ -205,6 +213,53 @@ class Nawba_Recognition_Experiment:
         cnf_matrix = confusion_matrix(self.y_test, y_pred)
         return cnf_matrix
 
+    # TODO: add personalized title by using parameters and automatic detection of the directory for
+    # TODO: save_scores_models and save_best_shifted_recording_plot
+    # def save_scores_models(self, notes_avg_nawba_list, y_avg_nawba_list, x_model, y_models_list, std, dir_path):
+    #
+    #     for i in range(len(notes_avg_nawba_list)):
+    #         emph_fontsize = 30
+    #         normal_fontsize = 24
+    #         f, (ax1, ax2) = plt.subplots(2, 1, figsize=(20, 20))
+    #         x_fake = list((i) for i in range(len(notes_avg_nawba_list[i])))
+    #         ax1.tick_params(labelsize=normal_fontsize)
+    #         ax1.bar(x_fake, y_avg_nawba_list[i], tick_label=notes_avg_nawba_list[i])
+    #         ax1.set_title("Avarage score - nawba {}".format(self.get_nawba_list()[i]), fontsize=emph_fontsize)
+    #         ax1.set_xlabel("Notes", fontsize=emph_fontsize)
+    #         ax1.set_ylabel("Occurances %", fontsize=emph_fontsize)
+    #         ax2.tick_params(labelsize=normal_fontsize)
+    #         ax2.plot(x_model, y_models_list[i], linewidth=4)
+    #         ax2.set_xlabel("Cents", fontsize=emph_fontsize)
+    #         ax2.set_ylabel("Occurances %", fontsize=emph_fontsize)
+    #         ax2.set_title("Template with standard deviation {} - nawba {}".format(std, self.get_nawba_list()[i]), fontsize=emph_fontsize)
+    #         file_name = "avg_score_template-nawba{}".format(self.get_nawba_list()[i])
+    #         if not os.path.exists(dir_path):
+    #             os.makedirs(dir_path)
+    #         f.savefig(os.path.join(dir_path, file_name), dpi=300)
+    #         plt.close(f)
+    #
+    # def save_best_shifted_recording_plot(self, rmbid, x_s, y_s, y_s_f, shift, predicted_nawba, dir_path):
+    #     emph_fontsize = 30
+    #     normal_fontsize = 24
+    #     fig = plt.figure(figsize=(20, 10))
+    #     plt.plot(x_s, y_s_f, label="template_{}".format(predicted_nawba), linewidth=4)
+    #     plt.plot(x_s, y_s, label="shifted recording", linewidth=4)
+    #
+    #     plt.title("{} - shift {}".format(rmbid, shift), fontsize=emph_fontsize)
+    #     plt.xlabel("Cents", fontsize=emph_fontsize)
+    #     plt.ylabel("Occurances", fontsize=emph_fontsize)
+    #     plt.xticks(fontsize = normal_fontsize)
+    #     plt.yticks(fontsize = normal_fontsize)
+    #
+    #     plt.legend(fontsize = normal_fontsize)
+    #     file_name = "{}_shift_{}".format(rmbid, shift)
+    #
+    #     if not os.path.exists(dir_path):
+    #         os.makedirs(dir_path)
+    #     plt.savefig(os.path.join(dir_path, file_name), dpi=300)
+    #     plt.close(fig)
+
+# ---------------------------------------- END EXPERIMENT CLASS ----------------------------------------
 
 def plot_confusion_matrix(cm, classes,
                           normalize=False,
@@ -214,27 +269,29 @@ def plot_confusion_matrix(cm, classes,
     This function prints and plots the confusion matrix.
     Normalization can be applied by setting `normalize=True`.
     """
+    emph_fontsize = 30
+    normal_fontsize = 24
     if normalize:
         cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
         title = "{} - normalized".format(title)
-    plt.figure()
+    plt.figure(figsize=(20, 20))
     plt.imshow(cm, interpolation='nearest', cmap=cmap)
-    plt.title(title)
+    plt.title(title, fontsize=emph_fontsize)
     plt.colorbar()
     tick_marks = np.arange(len(classes))
-    plt.xticks(tick_marks, classes, rotation=45)
-    plt.yticks(tick_marks, classes)
+    plt.xticks(tick_marks, classes, rotation=0, fontsize=normal_fontsize)
+    plt.yticks(tick_marks, classes, fontsize=normal_fontsize)
 
     fmt = '.2f' if normalize else 'd'
     thresh = cm.max() / 2.
     for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
         plt.text(j, i, format(cm[i, j], fmt),
                  horizontalalignment="center",
-                 color="white" if cm[i, j] > thresh else "black")
+                 color="white" if cm[i, j] > thresh else "black", fontsize=emph_fontsize)
 
     plt.tight_layout()
-    plt.ylabel('True label')
-    plt.xlabel('Predicted label')
+    plt.ylabel('True label', fontsize=emph_fontsize)
+    plt.xlabel('Predicted label', fontsize=emph_fontsize)
 
     if print:
         if not os.path.exists(path_directory) and not path_directory =="":
@@ -243,8 +300,6 @@ def plot_confusion_matrix(cm, classes,
         plt.savefig(file_name_path, dpi=300)
 
     plt.show()
-
-
 
 def calculate_overall_confusion_matrix(experiment_list, distance, std):
     cnf_list = list()
@@ -298,188 +353,93 @@ def export_overall_experiment(experiment_list, name, path_ditectory=""):
     overall_conf_matrix = calculate_overall_confusion_matrix(experiment_list, max_distance, max_std)
     classes = experiment_list[0].get_nawba_list()
     plot_confusion_matrix(overall_conf_matrix, classes, normalize=False,
-                          title="Confusion matrix - {} - {}".format(max_distance, max_std), cmap=plt.cm.Blues,
+                          title="Confusion matrix - {} - {}".format(DISTANCE_MEASURES[max_value_index], max_std), cmap=plt.cm.Blues,
                           plot=True, path_directory=overall_experiment_path)
     plot_confusion_matrix(overall_conf_matrix, classes, normalize=True,
-                          title="Confusion matrix - {} - {}".format(max_distance, max_std), cmap=plt.cm.Blues,
+                          title="Confusion matrix - {} - {}".format(DISTANCE_MEASURES[max_value_index], max_std), cmap=plt.cm.Blues,
                           plot=True, path_directory=overall_experiment_path)
 
     # -------------------------------------------------- OLD --------------------------------------------------
-
-    def create_equal_distributed_tabs_dataset(self, tabs_list, num_recording_per_tab, not_valid_rmbid_list):
-        ''' Create a dataset of random recordings by using the tabs contained in the list passed by input.
-        The number of element for every tab is a parameter of a function. The recording indicated in
-        not_valid_rmbid_list are not considered in the results
-
-        :param tabs_list: list of tab indexes that will be used in the dataset
-        :param num_recording_per_tab: number of recording for each tab
-        :param not_valid_rmbid_list: list of rmbid to not include in the dataset
-        '''
-        df_tab = self.cm.get_dataframe(DF_LISTS[1])
-        # avoid too long list
-        if len(tabs_list) > len(df_tab.index.values):
-            raise Exception("tab_list contains to many values: " + str(len(tabs_list)))
-
-        # avoid duplicates
-        if len(set(tabs_list)) != len(tabs_list):
-            raise Exception("tab_list contains duplicates")
-
-        # avoid wrong entry
-        for tab_index in tabs_list:
-            if not (tab_index in df_tab.index.values):
-                raise Exception("tab index " + str(tab_index) + " do not exist")
-
-        self.df_dataset = pd.DataFrame(columns=ATTRIBUTES)
-        tabs_matrix = list()
-
-        # for every tab in the dataset
-        for tab_index in tabs_list:
-            temp_tab_rmbid_list = self.cm.search_recording(tab_index, 'all', 'all', 'all')
-            # the dataset could have only analyzed recording with score
-            temp_tab_rmbid_list = check_files_of_rmbid_lists(RECORDINGS_DIR, temp_tab_rmbid_list, ['score', 'analysis json'],
-                                                   [True, True])
-            # delete not valid rmbid
-            a = set(temp_tab_rmbid_list)
-            b = set(not_valid_rmbid_list)
-            temp_tab_rmbid_list = a-b
-            if len(temp_tab_rmbid_list) < num_recording_per_tab:
-                raise Exception("Tab " + str(tab_index) + " have only " + str(len(temp_tab_rmbid_list)))
-            # select randomly the elements from the list
-            temp_tab_rmbid_list = random.sample(temp_tab_rmbid_list, num_recording_per_tab)
-            # append it to the list
-            tabs_matrix.append(list(temp_tab_rmbid_list))
-
-        for index in range(len(tabs_list)):
-            for rmbid in tabs_matrix[index]:
-                characteristic_list = [rmbid, tabs_list[index], \
-                                       get_tonic_value(os.path.join(RECORDINGS_DIR, rmbid), FN_TONIC_NO_FILT), \
-                                       get_tonic_value(os.path.join(RECORDINGS_DIR, rmbid), FN_TONIC_FILT), \
-                                       get_tonic_value(os.path.join(RECORDINGS_DIR, rmbid), FN_TONIC_SEC),\
-                                       False, ""]
-                df_row = pd.DataFrame([characteristic_list], columns=ATTRIBUTES)
-                self.df_dataset = self.df_dataset.append(df_row,  ignore_index=True)
-        self.tabs_list = tabs_list
-
-    def export_dataset(self, experiment_dir, file_name, tonic_type, format):
-
-        if not (tonic_type == 'all' or tonic_type in FN_TONIC_TYPE):
-            raise Exception("Tonic type " + str(tonic_type) + " do not exist")
-
-        if not(format == 'csv' or format == 'json'):
-            raise Exception("Format " + str(format) + " unknown")
-
-        attributes_list  = list()
-        for attr in ATTRIBUTES:
-            if not ((tonic_type == FN_TONIC_TYPE[0] and (attr == ATTRIBUTES[3] or attr == ATTRIBUTES[4])) or \
-                    (tonic_type == FN_TONIC_TYPE[1] and (attr == ATTRIBUTES[2] or attr == ATTRIBUTES[4])) or \
-                    (tonic_type == FN_TONIC_TYPE[2] and (attr == ATTRIBUTES[2] or attr == ATTRIBUTES[3]))):
-                attributes_list.append(attr)
-
-        #print(attributes_list)
-        # create a new dataframe
-        if tonic_type == 'all':
-            df_temp = self.df_dataset
-        else:
-            df_temp = pd.DataFrame(columns = attributes_list)
-            for row_index in self.df_dataset.index.values:
-                row_values = list()
-                for attr in attributes_list:
-                    #print("[" + str(row_index) + ", " + str(attr) + "]")
-                    row_values.append(self.df_dataset.loc[row_index, attr])
-                df_row = pd.DataFrame([row_values], columns = attributes_list)
-                df_temp = df_temp.append(df_row,  ignore_index=True)
-
-        if not os.path.exists(experiment_dir):
-            os.makedirs(experiment_dir)
-
-        if format == 'csv':
-            df_temp.to_csv(os.path.join(experiment_dir, file_name + '.csv'), sep=';', encoding="utf-8")
-            print(str(file_name) + '.csv created')
-
-        if format == 'json':
-            df_temp.to_json(path_or_buf=os.path.join(experiment_dir, file_name + '.json') ,orient='records')
-            print(str(file_name) + '.json created')
-
-    def export_dataset_csv_json(self):
-        #NAME_TONIC_TYPE = ['not_filt', 'filt', 'sec']
-        #for i in range(len(FN_TONIC_TYPE)):
-        #    self.export_dataset(EXPERIMENT_DIR, suffix + NAME_TONIC_TYPE[i], FN_TONIC_TYPE[i], 'csv')
-        #    self.export_dataset(EXPERIMENT_DIR, suffix + NAME_TONIC_TYPE[i], FN_TONIC_TYPE[i], 'json')
-        self.export_dataset(self.exp_dir, self.exp_name, 'all', 'csv')# + "all"
-        self.export_dataset(self.exp_dir, self.exp_name, 'all', 'json')#+ "all"
-
-    def import_dataset_from_csv(self, path, file_name):
-        complete_path = os.path.join(path,file_name)
-        if not os.path.exists(complete_path):
-            raise Exception("Path {} doesn't exist".format(complete_path))
-        self.df_dataset = pd.read_csv(complete_path, sep = ';', encoding="utf-8", index_col=0)
-        print(self.df_dataset)
-
-    def move_dataset_mp3(self, recordings_dir, experiment_mp3_dir):
-
-        # list of recordings by mbid
-        rmbid_list = list()
-        for row_index in self.df_dataset.index.values:
-            rmbid_list.append(self.df_dataset.loc[row_index, ATTRIBUTES[0]])
-
-        # check if all the files exists
-        if check_files_of_rmbid_lists(recordings_dir, rmbid_list, ['mp3', FNT_PITCH, FNT_PITCH_FILT], [True, True, True]):
-            for rmbid in rmbid_list:
-                FILE_NAMES = [rmbid + '.mp3', FNT_PITCH, FNT_PITCH_FILT]
-                for i in range(len(FILE_NAMES)):
-                    origin_file = os.path.join(recordings_dir, rmbid, FILE_NAMES[i])
-                    destination_dir = os.path.join(experiment_mp3_dir, rmbid)
-                    if not os.path.exists(destination_dir):
-                        os.makedirs(destination_dir)
-                    destination_file = os.path.join(destination_dir, FILE_NAMES[i])
-                    print(destination_file)
-                    copyfile(origin_file, destination_file)
-            print("All files are copied in the new directory")
-        else:
-            raise Exception("Some requested files do not exist")
+    # -------------------------------------------------- NOT CHECKED --------------------------------------------------
 
 
 
-    def save_scores_models(self, notes_avg_tab_list, y_avg_tab_list, x_model, y_models_list, param_name, param):
+    # def export_dataset(self, experiment_dir, file_name, tonic_type, format):
+    #
+    #     if not (tonic_type == 'all' or tonic_type in FN_TONIC_TYPE):
+    #         raise Exception("Tonic type " + str(tonic_type) + " do not exist")
+    #
+    #     if not(format == 'csv' or format == 'json'):
+    #         raise Exception("Format " + str(format) + " unknown")
+    #
+    #     attributes_list  = list()
+    #     for attr in ATTRIBUTES:
+    #         if not ((tonic_type == FN_TONIC_TYPE[0] and (attr == ATTRIBUTES[3] or attr == ATTRIBUTES[4])) or \
+    #                 (tonic_type == FN_TONIC_TYPE[1] and (attr == ATTRIBUTES[2] or attr == ATTRIBUTES[4])) or \
+    #                 (tonic_type == FN_TONIC_TYPE[2] and (attr == ATTRIBUTES[2] or attr == ATTRIBUTES[3]))):
+    #             attributes_list.append(attr)
+    #
+    #     #print(attributes_list)
+    #     # create a new dataframe
+    #     if tonic_type == 'all':
+    #         df_temp = self.df_dataset
+    #     else:
+    #         df_temp = pd.DataFrame(columns = attributes_list)
+    #         for row_index in self.df_dataset.index.values:
+    #             row_values = list()
+    #             for attr in attributes_list:
+    #                 #print("[" + str(row_index) + ", " + str(attr) + "]")
+    #                 row_values.append(self.df_dataset.loc[row_index, attr])
+    #             df_row = pd.DataFrame([row_values], columns = attributes_list)
+    #             df_temp = df_temp.append(df_row,  ignore_index=True)
+    #
+    #     if not os.path.exists(experiment_dir):
+    #         os.makedirs(experiment_dir)
+    #
+    #     if format == 'csv':
+    #         df_temp.to_csv(os.path.join(experiment_dir, file_name + '.csv'), sep=';', encoding="utf-8")
+    #         print(str(file_name) + '.csv created')
+    #
+    #     if format == 'json':
+    #         df_temp.to_json(path_or_buf=os.path.join(experiment_dir, file_name + '.json') ,orient='records')
+    #         print(str(file_name) + '.json created')
+    #
+    # def export_dataset_csv_json(self):
+    #     #NAME_TONIC_TYPE = ['not_filt', 'filt', 'sec']
+    #     #for i in range(len(FN_TONIC_TYPE)):
+    #     #    self.export_dataset(EXPERIMENT_DIR, suffix + NAME_TONIC_TYPE[i], FN_TONIC_TYPE[i], 'csv')
+    #     #    self.export_dataset(EXPERIMENT_DIR, suffix + NAME_TONIC_TYPE[i], FN_TONIC_TYPE[i], 'json')
+    #     self.export_dataset(self.exp_dir, self.exp_name, 'all', 'csv')# + "all"
+    #     self.export_dataset(self.exp_dir, self.exp_name, 'all', 'json')#+ "all"
+    #
+    # def import_dataset_from_csv(self, path, file_name):
+    #     complete_path = os.path.join(path,file_name)
+    #     if not os.path.exists(complete_path):
+    #         raise Exception("Path {} doesn't exist".format(complete_path))
+    #     self.df_dataset = pd.read_csv(complete_path, sep = ';', encoding="utf-8", index_col=0)
+    #     print(self.df_dataset)
+    #
+    # def move_dataset_mp3(self, recordings_dir, experiment_mp3_dir):
+    #
+    #     # list of recordings by mbid
+    #     rmbid_list = list()
+    #     for row_index in self.df_dataset.index.values:
+    #         rmbid_list.append(self.df_dataset.loc[row_index, ATTRIBUTES[0]])
+    #
+    #     # check if all the files exists
+    #     if check_files_of_rmbid_lists(recordings_dir, rmbid_list, ['mp3', FNT_PITCH, FNT_PITCH_FILT], [True, True, True]):
+    #         for rmbid in rmbid_list:
+    #             FILE_NAMES = [rmbid + '.mp3', FNT_PITCH, FNT_PITCH_FILT]
+    #             for i in range(len(FILE_NAMES)):
+    #                 origin_file = os.path.join(recordings_dir, rmbid, FILE_NAMES[i])
+    #                 destination_dir = os.path.join(experiment_mp3_dir, rmbid)
+    #                 if not os.path.exists(destination_dir):
+    #                     os.makedirs(destination_dir)
+    #                 destination_file = os.path.join(destination_dir, FILE_NAMES[i])
+    #                 print(destination_file)
+    #                 copyfile(origin_file, destination_file)
+    #         print("All files are copied in the new directory")
+    #     else:
+    #         raise Exception("Some requested files do not exist")
 
-        for i in range(len(notes_avg_tab_list)):
 
-            f, (ax1, ax2) = plt.subplots(2, 1, figsize=(20, 20))
-            x_fake = list((i) for i in range(len(notes_avg_tab_list[i])))
-            ax1.bar(x_fake, y_avg_tab_list[i], tick_label=notes_avg_tab_list[i])
-            ax1.set_title("Avarage score - tab {}".format(self.tabs_list[i]))
-            ax1.set_xlabel("Notes")
-            ax1.set_ylabel("Occurances %")
-            ax2.plot(x_model, y_models_list[i])
-            ax2.set_xlabel("Cents")
-            ax2.set_ylabel("Occurances %")
-            ax2.set_title("Model with standard deviation {} - tab {}".format(param, self.tabs_list[i]))
-            file_name = "avg_score_model-tab{}-{}{}".format(self.tabs_list[i], param_name, param)
-            dir_name = os.path.join(self.exp_dir, str(param), "avg_scores_models-{}_{}".format(param_name, param))
-            if not os.path.exists(dir_name):
-                os.makedirs(dir_name)
-            f.savefig(os.path.join(dir_name, file_name))
-            plt.close(f)
-
-    def save_best_shifted_recording_plot(self, rmbid, x_s, y_s, y_s_f, shift, param_name, param, tab):
-        fig = plt.figure()
-        plt.plot(x_s, y_s_f, label="model{}".format(tab))
-        plt.plot(x_s, y_s, label="shifted recording")
-
-        plt.title("{} - shift {} - {} {}".format(rmbid, shift, param_name, param))
-        plt.xlabel("Cents")
-        plt.ylabel("Occurances")
-        plt.legend()
-        file_name = "{}_shift_{}".format(rmbid, shift)
-        dir_name = os.path.join(self.exp_dir, str(param), "best_plot-{}_{}".format(param_name, param))
-        if not os.path.exists(dir_name):
-            os.makedirs(dir_name)
-        plt.savefig(os.path.join(dir_name, file_name))
-        plt.close(fig)
-
-    def export_experiment_results_to_csv(self, df_exper, param_name, param):
-        file_name = "{}-{}_{}.csv".format(self.exp_name, param_name, param)
-        dir_name = os.path.join(self.exp_dir, str(param), "results")
-        if not os.path.exists(dir_name):
-            os.makedirs(dir_name)
-        df_exper.sort_values(by=['tab']).to_csv(os.path.join(dir_name, file_name), sep=';', encoding="utf-8")
