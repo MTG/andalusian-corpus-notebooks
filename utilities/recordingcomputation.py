@@ -11,10 +11,6 @@ import pandas as pd
 import numpy as np
 import scipy.integrate as integrate
 from scipy.spatial import distance
-# import scipy.spatial.distance.cityblock as cityblock
-# import scipy.spatial.distance.euclidean as euclidean
-# import scipy.spatial.distance.correlation as correlation
-# import scipy.spatial.distance.canberra as canberra
 
 import matplotlib.pyplot as plt
 from music21 import *
@@ -692,10 +688,10 @@ def convert_folded_scores_in_models(y_list, std):
 
     return x_distribution, y_distribution_list
 
-def get_nawba_using_models_from_scores(exp, rmbid, y_models_list, distance_type):
+def get_nawba_using_models_from_scores(exp, rmbid, y_models_list, distance_type, std):
     if not (rmbid in exp.do.cm.get_list_of_recordings()):
         raise Exception("rmbid {} does not exist in the corpora".format(rmbid))
-    if not (distance_type in exp.distance_measure):
+    if not (distance_type in exp.distance_measure_list):
         raise Exception("distance {} is not a valid distance metric".format(distance))
 
     # load the pitch distribution of the recording
@@ -740,31 +736,30 @@ def get_nawba_using_models_from_scores(exp, rmbid, y_models_list, distance_type)
     best_y.rotate(best_shift)
 
     nawba_list = exp.get_nawba_list()
-    path_dir = os.path.join(EXPERIMENT_DIR, "comparison")  # TODO: put saved figures in the same directory of the experiment
-    #exp.save_best_shifted_recording_plot(rmbid, x_reference, y_models_list[best_model], best_y, best_shift, nawba_list[best_model], path_dir)
+    path_dir = os.path.join(exp.experiment_dir, str(std) ,"best_matches")
+    exp.save_best_shifted_recording_plot(rmbid, x_reference, best_y, y_models_list[best_model],  best_shift, nawba_list[best_model], path_dir)
 
     #print(nawba_list[best_model])
     return nawba_list[best_model]
 
-
 def get_distance(exp, shifted_recording, nawba_model, distance_type):
-    # DISTANCE_MEASURES = ["city block (L1)", "euclidian (L2)", "correlation", "intersection", "camberra", "K-L"]
+    # DISTANCE_MEASURES = ["city block (L1)", "euclidian (L2)", "correlation", "camberra", "K-L"]
 
     # city-block (L1)
-    if distance_type == exp.distance_measure[0]:
+    if distance_type == DISTANCE_MEASURES[0]:
         return distance.cityblock(shifted_recording, nawba_model)
     # euclidian (L2)
-    if distance_type == exp.distance_measure[1]:
+    if distance_type == DISTANCE_MEASURES[1]:
         return distance.euclidean(shifted_recording, nawba_model)
     # correlation
-    if distance_type == exp.distance_measure[2]:
+    if distance_type == DISTANCE_MEASURES[2]:
         return 1/np.dot(shifted_recording, nawba_model)
     # intersection
-    if distance_type == exp.distance_measure[3]:
-        temp_min_function = np.minimum(shifted_recording, nawba_model)
-        return 1/sum(temp_min_function)
+    # if distance_type == exp.distance_measure[3]:
+    #     temp_min_function = np.minimum(shifted_recording, nawba_model)
+    #     return 1/sum(temp_min_function)
     # camberra
-    if distance_type == exp.distance_measure[4]:
+    if distance_type == DISTANCE_MEASURES[3]:
         return distance.canberra(shifted_recording, nawba_model)
 
 # def get_tab_by_folded_score_cross(do, rmbid, y_avg_tab_list, std):

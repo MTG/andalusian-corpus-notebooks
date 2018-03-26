@@ -47,3 +47,6 @@ DUNYA_TOKEN = '1caad80ef12b4d47accfd26b01c9062da834825f' # put your DUNYA_TOKEN 
 
 # GUI
 OPTION_LIST = ['mp3', 'score', 'MB metadata', 'analysis json', 'analysis text', 'wav']
+
+# distance measures for experiments
+DISTANCE_MEASURES = ["city block (L1)", "euclidian (L2)", "correlation", "canberra"]

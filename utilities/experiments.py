@@ -27,7 +27,6 @@ matplotlib.rc('font', **font)
 # ---------------------------------------- DATASET -------------------------------------------------
 
 DATASET_ATTRIBUTES = [DF_LISTS[2]]
-DISTANCE_MEASURES = ["city block (L1)"] #["city block (L1)", "euclidian (L2)", "correlation", "intersection", "canberra"]
 
 class DataSet:
 
@@ -100,12 +99,24 @@ class DataSet:
 
 class Nawba_Recognition_Experiment:
 
-    def __init__(self, dataset_object, test_size, random_state, standard_deviation_list):
+    def __init__(self, dataset_object, test_size, random_state, standard_deviation_list, distance_measure_list, experiment_name, path_dir):
 
         self.do = dataset_object
         self.df_dataset = dataset_object.get_dataset_dataframe()
         self.std_list = standard_deviation_list
-        self.distance_measure = DISTANCE_MEASURES
+
+        for distance in distance_measure_list:
+            if not (distance in DISTANCE_MEASURES):
+                raise Exception("Distance measure {} is not part of the experiment".format(distance))
+
+        self.distance_measure_list = distance_measure_list
+        self.experiment_name = experiment_name
+
+        # create a directory for the experiment
+        experiment_dir = os.path.join(path_dir, experiment_name)
+        if not os.path.exists(experiment_dir):
+            os.makedirs(experiment_dir)
+        self.experiment_dir = experiment_dir
 
         # divide the dataset in training set and test set
         X = list()
@@ -121,12 +132,12 @@ class Nawba_Recognition_Experiment:
         self.experiment_attributes = list()
         for attr in DATASET_ATTRIBUTES:
             self.experiment_attributes.append("{}".format(attr))
-            for measure in DISTANCE_MEASURES:
+            for measure in self.distance_measure_list:
                 self.experiment_attributes.append("{}-{}".format(attr, measure))
 
         self.summary_attributes = list()
         for attr in DATASET_ATTRIBUTES:
-            for measure in DISTANCE_MEASURES:
+            for measure in self.distance_measure_list:
                 self.summary_attributes.append("{}-{}".format(attr, measure))
 
         # one dataframe for every standard deviation
@@ -163,26 +174,24 @@ class Nawba_Recognition_Experiment:
         return self.do.get_nawba_list()
 
     def run(self):
-        counter_1 = 0
-        counter_2 = 0
+
         for i in range(len(self.std_list)):
 
             # convert notes histograms in models
             x_model, y_models_list = convert_folded_scores_in_models(self.y_avg_nawba_list, self.std_list[i])
             # save figures
-            path_dir = os.path.join(EXPERIMENT_DIR, "template") # TODO: put saved figures in the same directory of the experiment
-            #self.save_scores_models(self.notes_avg_nawba_list, self.y_avg_nawba_list, x_model, y_models_list, "40", path_dir)
+            template_dir = os.path.join(self.experiment_dir, str(self.std_list[i]) ,"templates")
+            self.save_scores_models(self.notes_avg_nawba_list, self.y_avg_nawba_list, x_model, y_models_list, self.std_list[i], template_dir)
 
-
-            count = 0
+            #count = 0
             # for every recording in the test set
             for rmbid in self.df_experiment_list[i].index.values.tolist():
-                count += 1
+                #count += 1
                 #print(count)
                 self.df_experiment_list[i].loc[rmbid, DATASET_ATTRIBUTES[0]] = self.do.df_dataset.loc[rmbid, DATASET_ATTRIBUTES[0]]
 
-                for distance_type in DISTANCE_MEASURES:
-                    resulting_nawba = get_nawba_using_models_from_scores(self, rmbid, y_models_list, distance_type)
+                for distance_type in self.distance_measure_list:
+                    resulting_nawba = get_nawba_using_models_from_scores(self, rmbid, y_models_list, distance_type, self.std_list[i])
                     column_nawba = "{}-{}".format(DATASET_ATTRIBUTES[0], distance_type)
                     self.df_experiment_list[i].loc[rmbid,column_nawba] = resulting_nawba
             print(" - sub_exp_{} completed".format(self.std_list[i]))
@@ -192,7 +201,7 @@ class Nawba_Recognition_Experiment:
     def compute_summary(self):
 
         for i in range(len(self.std_list)):
-            for distance_type in DISTANCE_MEASURES:
+            for distance_type in self.distance_measure_list:
                 for rmbid in self.df_experiment_list[i].index.values.tolist():
                     nawba_attributes = "{}-{}".format(DATASET_ATTRIBUTES[0], distance_type)
                     resulting_nawba = self.df_experiment_list[i].loc[rmbid, nawba_attributes]
@@ -213,51 +222,49 @@ class Nawba_Recognition_Experiment:
         cnf_matrix = confusion_matrix(self.y_test, y_pred)
         return cnf_matrix
 
-    # TODO: add personalized title by using parameters and automatic detection of the directory for
-    # TODO: save_scores_models and save_best_shifted_recording_plot
-    # def save_scores_models(self, notes_avg_nawba_list, y_avg_nawba_list, x_model, y_models_list, std, dir_path):
-    #
-    #     for i in range(len(notes_avg_nawba_list)):
-    #         emph_fontsize = 30
-    #         normal_fontsize = 24
-    #         f, (ax1, ax2) = plt.subplots(2, 1, figsize=(20, 20))
-    #         x_fake = list((i) for i in range(len(notes_avg_nawba_list[i])))
-    #         ax1.tick_params(labelsize=normal_fontsize)
-    #         ax1.bar(x_fake, y_avg_nawba_list[i], tick_label=notes_avg_nawba_list[i])
-    #         ax1.set_title("Avarage score - nawba {}".format(self.get_nawba_list()[i]), fontsize=emph_fontsize)
-    #         ax1.set_xlabel("Notes", fontsize=emph_fontsize)
-    #         ax1.set_ylabel("Occurances %", fontsize=emph_fontsize)
-    #         ax2.tick_params(labelsize=normal_fontsize)
-    #         ax2.plot(x_model, y_models_list[i], linewidth=4)
-    #         ax2.set_xlabel("Cents", fontsize=emph_fontsize)
-    #         ax2.set_ylabel("Occurances %", fontsize=emph_fontsize)
-    #         ax2.set_title("Template with standard deviation {} - nawba {}".format(std, self.get_nawba_list()[i]), fontsize=emph_fontsize)
-    #         file_name = "avg_score_template-nawba{}".format(self.get_nawba_list()[i])
-    #         if not os.path.exists(dir_path):
-    #             os.makedirs(dir_path)
-    #         f.savefig(os.path.join(dir_path, file_name), dpi=300)
-    #         plt.close(f)
-    #
-    # def save_best_shifted_recording_plot(self, rmbid, x_s, y_s, y_s_f, shift, predicted_nawba, dir_path):
-    #     emph_fontsize = 30
-    #     normal_fontsize = 24
-    #     fig = plt.figure(figsize=(20, 10))
-    #     plt.plot(x_s, y_s_f, label="template_{}".format(predicted_nawba), linewidth=4)
-    #     plt.plot(x_s, y_s, label="shifted recording", linewidth=4)
-    #
-    #     plt.title("{} - shift {}".format(rmbid, shift), fontsize=emph_fontsize)
-    #     plt.xlabel("Cents", fontsize=emph_fontsize)
-    #     plt.ylabel("Occurances", fontsize=emph_fontsize)
-    #     plt.xticks(fontsize = normal_fontsize)
-    #     plt.yticks(fontsize = normal_fontsize)
-    #
-    #     plt.legend(fontsize = normal_fontsize)
-    #     file_name = "{}_shift_{}".format(rmbid, shift)
-    #
-    #     if not os.path.exists(dir_path):
-    #         os.makedirs(dir_path)
-    #     plt.savefig(os.path.join(dir_path, file_name), dpi=300)
-    #     plt.close(fig)
+    def save_scores_models(self, notes_avg_nawba_list, y_avg_nawba_list, x_model, y_models_list, std, dir_path):
+
+        for i in range(len(notes_avg_nawba_list)):
+            emph_fontsize = 30
+            normal_fontsize = 24
+            f, (ax1, ax2) = plt.subplots(2, 1, figsize=(20, 20))
+            x_fake = list((i) for i in range(len(notes_avg_nawba_list[i])))
+            ax1.tick_params(labelsize=normal_fontsize)
+            ax1.bar(x_fake, y_avg_nawba_list[i], tick_label=notes_avg_nawba_list[i])
+            ax1.set_title("Avarage score - nawba {}".format(self.get_nawba_list()[i]), fontsize=emph_fontsize)
+            ax1.set_xlabel("Notes", fontsize=emph_fontsize)
+            ax1.set_ylabel("Occurances %", fontsize=emph_fontsize)
+            ax2.tick_params(labelsize=normal_fontsize)
+            ax2.plot(x_model, y_models_list[i], linewidth=4)
+            ax2.set_xlabel("Cents", fontsize=emph_fontsize)
+            ax2.set_ylabel("Occurances %", fontsize=emph_fontsize)
+            ax2.set_title("Template with standard deviation {} - nawba {}".format(std, self.get_nawba_list()[i]), fontsize=emph_fontsize)
+            file_name = "avg_score_template-nawba{}".format(self.get_nawba_list()[i])
+            if not os.path.exists(dir_path):
+                os.makedirs(dir_path)
+            f.savefig(os.path.join(dir_path, file_name), dpi=300)
+            plt.close(f)
+
+    def save_best_shifted_recording_plot(self, rmbid, x_s, y_s, y_s_f, shift, predicted_nawba, dir_path):
+        emph_fontsize = 30
+        normal_fontsize = 24
+        fig = plt.figure(figsize=(20, 10))
+        plt.plot(x_s, y_s_f, label="template_{}".format(predicted_nawba), linewidth=4)
+        plt.plot(x_s, y_s, label="shifted recording", linewidth=4)
+
+        plt.title("{} - shift {}".format(rmbid, shift), fontsize=emph_fontsize)
+        plt.xlabel("Cents", fontsize=emph_fontsize)
+        plt.ylabel("Occurances", fontsize=emph_fontsize)
+        plt.xticks(fontsize = normal_fontsize)
+        plt.yticks(fontsize = normal_fontsize)
+
+        plt.legend(fontsize = normal_fontsize)
+        file_name = "{}_shift_{}".format(rmbid, shift)
+
+        if not os.path.exists(dir_path):
+            os.makedirs(dir_path)
+        plt.savefig(os.path.join(dir_path, file_name), dpi=300)
+        plt.close(fig)
 
 # ---------------------------------------- END EXPERIMENT CLASS ----------------------------------------
 
@@ -290,8 +297,8 @@ def plot_confusion_matrix(cm, classes,
                  color="white" if cm[i, j] > thresh else "black", fontsize=emph_fontsize)
 
     plt.tight_layout()
-    plt.ylabel('True label', fontsize=emph_fontsize)
-    plt.xlabel('Predicted label', fontsize=emph_fontsize)
+    plt.ylabel('True nawba', fontsize=emph_fontsize)
+    plt.xlabel('Predicted nawba', fontsize=emph_fontsize)
 
     if print:
         if not os.path.exists(path_directory) and not path_directory =="":
@@ -320,21 +327,23 @@ def calculate_overall_confusion_matrix(experiment_list, distance, std):
 
     return np.asarray(df_cnf_total.values.tolist())
 
-def export_overall_experiment(experiment_list, name, path_ditectory=""):
+def export_overall_experiment(experiment_list, source_path):
     # create the main directory
-    overall_experiment_path = os.path.join(path_ditectory, name)
-    suffix = "exp_"
+
+
     for i in range(len(experiment_list)):
-        exp_path = os.path.join(overall_experiment_path, suffix + str(i+1))
-        if not os.path.exists(exp_path):
-            os.makedirs(exp_path)
+        exp_dir = experiment_list[i].experiment_dir
+        exp_name = experiment_list[i].experiment_name
+        if not os.path.exists(exp_dir):
+            os.makedirs(exp_dir)
 
         for j in range(len(experiment_list[0].std_list)):
-            experiment_result_filename = "exp_{} - {}.csv".format(i+1, experiment_list[i].std_list[j])
-            path_filename_result = os.path.join(exp_path, experiment_result_filename)
+            std_dir = os.path.join(exp_dir, str(experiment_list[0].std_list[j]))
+            experiment_result_filename = "{} - {}.csv".format(exp_name, experiment_list[i].std_list[j])
+            path_filename_result = os.path.join(std_dir, experiment_result_filename)
             experiment_list[i].df_experiment_list[j].to_csv(path_filename_result, sep=';', encoding="utf-8")
         summary_filename = "exp_{} - summary.csv".format(i+1)
-        path_filename_summary = os.path.join(exp_path, summary_filename)
+        path_filename_summary = os.path.join(exp_dir, summary_filename)
         experiment_list[i].df_summary.to_csv(path_filename_summary, sep=';', encoding="utf-8")
 
     df_overall = experiment_list[0].df_summary
@@ -342,7 +351,7 @@ def export_overall_experiment(experiment_list, name, path_ditectory=""):
         df_overall = df_overall.add(experiment_list[index + 1].df_summary)
     df_overall = df_overall.divide(len(experiment_list))
     overall_filename = "overall_results.csv"
-    path_filename_overall = os.path.join(overall_experiment_path, overall_filename)
+    path_filename_overall = os.path.join(source_path, overall_filename)
     df_overall.to_csv(path_filename_overall, sep=';', encoding="utf-8")
 
     # find best result
@@ -353,11 +362,11 @@ def export_overall_experiment(experiment_list, name, path_ditectory=""):
     overall_conf_matrix = calculate_overall_confusion_matrix(experiment_list, max_distance, max_std)
     classes = experiment_list[0].get_nawba_list()
     plot_confusion_matrix(overall_conf_matrix, classes, normalize=False,
-                          title="Confusion matrix - {} - {}".format(DISTANCE_MEASURES[max_value_index], max_std), cmap=plt.cm.Blues,
-                          plot=True, path_directory=overall_experiment_path)
+                          title="Confusion matrix - {} - {}".format(experiment_list[0].distance_measure_list[max_value_index], max_std), cmap=plt.cm.Blues,
+                          plot=True, path_directory=source_path)
     plot_confusion_matrix(overall_conf_matrix, classes, normalize=True,
-                          title="Confusion matrix - {} - {}".format(DISTANCE_MEASURES[max_value_index], max_std), cmap=plt.cm.Blues,
-                          plot=True, path_directory=overall_experiment_path)
+                          title="Confusion matrix - {} - {}".format(experiment_list[0].distance_measure_list[max_value_index], max_std), cmap=plt.cm.Blues,
+                          plot=True, path_directory=source_path)
 
     # -------------------------------------------------- OLD --------------------------------------------------
     # -------------------------------------------------- NOT CHECKED --------------------------------------------------
