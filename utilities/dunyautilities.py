@@ -69,7 +69,7 @@ def collect_metadata():
     # Grab all the recordings metadata from json file
     collectionRecordings = None
     recording_json_path = os.path.join(DATA_DIR, PREFIX_JSON + DF_LISTS[0] + '.json')
-    with open(recording_json_path) as json_element:  # this list is manually compiled
+    with open(recording_json_path) as json_element:
         collectionRecordings = json.load(json_element)
     collectionRecordings = collectionRecordings['results']
 

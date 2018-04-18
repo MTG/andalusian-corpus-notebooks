@@ -7,6 +7,7 @@
 import os
 import json
 import copy
+import heapq
 import pandas as pd
 import numpy as np
 import scipy.integrate as integrate
@@ -553,7 +554,7 @@ def get_folded_score_histogram(recordings_folder, mbid_list):
     '''
     hist = dict((note, 0) for note in list_notes)
     for rmbid in mbid_list:
-        rmbid_parsing = converter.parse(os.path.join(recordings_folder, rmbid, rmbid) + '-symbtrxml.xml')
+        rmbid_parsing = converter.parse(os.path.join(recordings_folder, rmbid, rmbid) + XML_SUFFIX)
         rmbid_stream = rmbid_parsing.recurse().notes
         for myNote in rmbid_stream:
             #   list_notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
@@ -591,7 +592,7 @@ def get_unfolded_score_histogram(recordings_folder, mbid_list):
     max_octave = 0
     # get the numbers of octaves finding max and min
     for rmbid in mbid_list:
-        rmbid_parsing = converter.parse(os.path.join(recordings_folder, rmbid, rmbid) + '-symbtrxml.xml')
+        rmbid_parsing = converter.parse(os.path.join(recordings_folder, rmbid, rmbid) + XML_SUFFIX)
         rmbid_stream = rmbid_parsing.recurse().notes
         for myNote in rmbid_stream:
             if not myNote.isChord:
@@ -610,7 +611,7 @@ def get_unfolded_score_histogram(recordings_folder, mbid_list):
 
     # fill the histogram
     for rmbid in mbid_list:
-        rmbid_parsing = converter.parse(os.path.join(recordings_folder, rmbid, rmbid) + '-symbtrxml.xml')
+        rmbid_parsing = converter.parse(os.path.join(recordings_folder, rmbid, rmbid) + XML_SUFFIX)
         rmbid_stream = rmbid_parsing.recurse().notes
         for myNote in rmbid_stream:
             #   list_notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
@@ -688,14 +689,14 @@ def convert_folded_scores_in_models(y_list, std):
 
     return x_distribution, y_distribution_list
 
-def get_nawba_using_models_from_scores(exp, rmbid, y_models_list, distance_type, std):
+def get_nawba_using_models_from_scores(exp, rmbid, y_models_list, distance_type, std, plot_flag):
     if not (rmbid in exp.do.cm.get_list_of_recordings()):
         raise Exception("rmbid {} does not exist in the corpora".format(rmbid))
     if not (distance_type in exp.distance_measure_list):
         raise Exception("distance {} is not a valid distance metric".format(distance))
 
     # load the pitch distribution of the recording
-    vals, bins = load_pd(os.path.join(RECORDINGS_DIR, rmbid, 'audioanalysis--pitch_distribution.json'))
+    vals, bins = load_pd(os.path.join(RECORDINGS_DIR, rmbid, FN_PD)) # 'audioanalysis--pitch_distribution.json'
     # use the max peak as fake_tonic
     fake_tonic_index = vals.index(max(vals))
     fake_tonic = bins[fake_tonic_index]
@@ -705,9 +706,7 @@ def get_nawba_using_models_from_scores(exp, rmbid, y_models_list, distance_type,
     histograms[rmbid] = [[vals, bins], fake_tonic]
     x, y = compute_overall_histogram(histograms)
     x_reference, y_reference = fold_histogram(x, y, NUM_CENTS, 50)
-
     recording_value_queue = deque(y_reference)
-
 
     best_model = 0
     best_distance_value = 100000
@@ -716,7 +715,6 @@ def get_nawba_using_models_from_scores(exp, rmbid, y_models_list, distance_type,
     nawba_list = exp.get_nawba_list()
     #print(nawba_list)
     #df_results_temp = pd.DataFrame(columns=nawba_list, index = range(NUM_CENTS))
-
 
     for model_index in range(len(exp.y_avg_nawba_list)):
         for shift_value in range(NUM_CENTS):
@@ -737,7 +735,8 @@ def get_nawba_using_models_from_scores(exp, rmbid, y_models_list, distance_type,
 
     nawba_list = exp.get_nawba_list()
     path_dir = os.path.join(exp.experiment_dir, str(std) ,"best_matches")
-    exp.save_best_shifted_recording_plot(rmbid, x_reference, best_y, y_models_list[best_model],  best_shift, nawba_list[best_model], path_dir)
+    if plot_flag:
+        exp.save_best_shifted_recording_plot(rmbid, x_reference, best_y, y_models_list[best_model],  best_shift, nawba_list[best_model], path_dir)
 
     #print(nawba_list[best_model])
     return nawba_list[best_model]
@@ -1156,7 +1155,7 @@ def get_distance(exp, shifted_recording, nawba_model, distance_type):
 #     #noteList = []
 #
 #     for rmbid in mbid_list:
-#         rmbid_parsing = converter.parse(os.path.join(recordings_folder, rmbid, rmbid) + '-symbtrxml.xml')
+#         rmbid_parsing = converter.parse(os.path.join(recordings_folder, rmbid, rmbid) + XML_SUFFIX)
 #         rmbid_stream = rmbid_parsing.recurse().notes # songNotesStream
 #
 #         for myNote in rmbid_stream:

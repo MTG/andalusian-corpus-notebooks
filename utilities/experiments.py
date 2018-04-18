@@ -15,6 +15,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from music21 import *
 from sklearn.metrics import confusion_matrix
+from sklearn.utils import shuffle
 from sklearn.model_selection import train_test_split
 from shutil import copyfile
 from utilities.constants import *
@@ -36,6 +37,7 @@ class DataSet:
         :param cm: Metadata Object
         :param rmbid_list: list of recording mbids
         '''
+
         self.cm = cm
         self.rmbid_list = rmbid_list
         self.nawba_list = []
@@ -48,7 +50,13 @@ class DataSet:
             self.add_rmbid_list_to_dataframe(rmbid_list)
 
     def add_rmbid_list_to_dataframe(self, rmbid_list):
+        ''' Add a list of MusibBrainz id to the dataframe of the Dataset object
+
+        :param rmbid_list: list of music brainz id
+        '''
+
         # check if the list of mbid in the corpora
+        self.rmbid_list += rmbid_list
         correct_list, incorrect_list = self.cm.check_rmbid_list_before_download(rmbid_list)
         if len(incorrect_list) > 0:
             raise Exception("The mbid\s {} are not in Dunya".format(incorrect_list))
@@ -99,18 +107,30 @@ class DataSet:
 
 class Nawba_Recognition_Experiment:
 
-    def __init__(self, dataset_object, test_size, random_state, standard_deviation_list, distance_measure_list, experiment_name, path_dir):
+    def __init__(self, dataset_object, i_element, random_state, standard_deviation_list, distance_measure_list, experiment_name, path_dir):
+        ''' Initialize the Experiment Object
+
+        :param dataset_object: Dataset object with the information about the dataset used in the experiment
+        :param i_element: index to select the recordings that will be part of the test set
+        :param random_state: index to reproduce the pseudo-random order of an experiment
+        :param standard_deviation_list: list of standard deviation values used to create the templates in the experiment
+        :param distance_measure_list: list of distance measure used to recognize the nawba of a recording
+        :param experiment_name: string of the experiment name
+        :param path_dir: path of the directory where will be saved all the results of the experiment
+        '''
 
         self.do = dataset_object
         self.df_dataset = dataset_object.get_dataset_dataframe()
         self.std_list = standard_deviation_list
 
+        # check of the distance measure
         for distance in distance_measure_list:
             if not (distance in DISTANCE_MEASURES):
                 raise Exception("Distance measure {} is not part of the experiment".format(distance))
 
         self.distance_measure_list = distance_measure_list
         self.experiment_name = experiment_name
+        self.source_dir = path_dir
 
         # create a directory for the experiment
         experiment_dir = os.path.join(path_dir, experiment_name)
@@ -118,16 +138,38 @@ class Nawba_Recognition_Experiment:
             os.makedirs(experiment_dir)
         self.experiment_dir = experiment_dir
 
-        # divide the dataset in training set and test set
-        X = list()
-        y = list()
-        for rmbid in self.df_dataset.index.values.tolist():
-            X.append(rmbid)
-            y.append(self.df_dataset.loc[rmbid, DATASET_ATTRIBUTES[0]])
+        # # divide the dataset in training set and test set
+        # X = list()
+        # y = list()
+        # for rmbid in self.df_dataset.index.values.tolist():
+        #     X.append(rmbid)
+        #     y.append(self.df_dataset.loc[rmbid, DATASET_ATTRIBUTES[0]])
+        #
+        # self.X_mbid_train, self.X_mbid_test, self.y_train, self.y_test = train_test_split(X, y, stratify=y,\
+        #                                                                                   test_size=test_size,\
+        #                                                                                     random_state=random_state)
 
-        self.X_mbid_train, self.X_mbid_test, self.y_train, self.y_test = train_test_split(X, y, stratify=y,\
-                                                                                          test_size=test_size,\
-                                                                                            random_state=random_state)
+        # divide the dataset in training set and test set
+        self.X_mbid_train = list()
+        self.X_mbid_test = list()
+        self.y_train = list()
+        self.y_test = list()
+
+        for i in range(len(self.do.get_nawba_list())):
+            temp_list_single_nawba = self.df_dataset.index.values.tolist()[i*7:(i+1)*7]
+            temp_list_single_nawba = shuffle(temp_list_single_nawba, random_state=random_state)
+            for j in range(len(temp_list_single_nawba)):
+                if j == i_element:
+                    self.X_mbid_test.append(temp_list_single_nawba[j])
+                else:
+                    self.X_mbid_train.append(temp_list_single_nawba[j])
+
+        for mbid in self.X_mbid_train:
+            self.y_train.append(self.df_dataset.loc[mbid, "nawba"])
+
+        for mbid in self.X_mbid_test:
+            self.y_test.append(self.df_dataset.loc[mbid, "nawba"])
+
         # create the dataframe that will contain the results of the experiments
         self.experiment_attributes = list()
         for attr in DATASET_ATTRIBUTES:
@@ -151,6 +193,12 @@ class Nawba_Recognition_Experiment:
         self.notes_avg_nawba_list, self.y_avg_nawba_list = compute_folded_avg_scores(self)
 
     def get_train_mbid_by_nawba(self, nawba):
+        ''' Return the list of recordings in the training set belong to a selected nawba
+
+        :param nawba: nawba index
+        :return: list of MusicBrainz ids in the training set belong to a selected nawba
+        '''
+
         rmbid_list = list()
         for i in range(len(self.y_train)):
             if self.y_train[i] == nawba:
@@ -158,6 +206,12 @@ class Nawba_Recognition_Experiment:
         return rmbid_list
 
     def get_test_mbid_by_nawba(self, nawba):
+        ''' Return the list of recordings in the test set belong to a selected nawba
+
+        :param nawba: nawba index
+        :return: list of MusicBrainz ids in the test set belong to a selected nawba
+        '''
+
         rmbid_list = list()
         for i in range(len(self.y_test)):
             if self.y_test[i] == nawba:
@@ -165,40 +219,47 @@ class Nawba_Recognition_Experiment:
         return rmbid_list
 
     def get_test_dataset(self):
+        ''' Return the list of recordings in the test set
+
+        :return: list of musicbrainz ids
+        '''
         rmbid_list = list()
         for i in range(len(self.y_test)):
             rmbid_list.append(self.X_mbid_test[i])
         return rmbid_list, self.y_test
 
     def get_nawba_list(self):
+        ''' List of nawbat considered in the experiment
+
+        :return: list of musicbrainz ids
+        '''
         return self.do.get_nawba_list()
 
-    def run(self):
-
+    def run(self, plot_flag = False):
+        ''' Function to run the nawba recognition experiment
+        '''
         for i in range(len(self.std_list)):
 
-            # convert notes histograms in models
+            # convert pitch class distribution in templates
             x_model, y_models_list = convert_folded_scores_in_models(self.y_avg_nawba_list, self.std_list[i])
             # save figures
             template_dir = os.path.join(self.experiment_dir, str(self.std_list[i]) ,"templates")
-            self.save_scores_models(self.notes_avg_nawba_list, self.y_avg_nawba_list, x_model, y_models_list, self.std_list[i], template_dir)
+            if plot_flag:
+                self.save_scores_models(self.notes_avg_nawba_list, self.y_avg_nawba_list, x_model, y_models_list, self.std_list[i], template_dir)
 
-            #count = 0
             # for every recording in the test set
             for rmbid in self.df_experiment_list[i].index.values.tolist():
-                #count += 1
-                #print(count)
                 self.df_experiment_list[i].loc[rmbid, DATASET_ATTRIBUTES[0]] = self.do.df_dataset.loc[rmbid, DATASET_ATTRIBUTES[0]]
 
                 for distance_type in self.distance_measure_list:
-                    resulting_nawba = get_nawba_using_models_from_scores(self, rmbid, y_models_list, distance_type, self.std_list[i])
+                    resulting_nawba = get_nawba_using_models_from_scores(self, rmbid, y_models_list, distance_type, self.std_list[i], plot_flag)
                     column_nawba = "{}-{}".format(DATASET_ATTRIBUTES[0], distance_type)
                     self.df_experiment_list[i].loc[rmbid,column_nawba] = resulting_nawba
             print(" - sub_exp_{} completed".format(self.std_list[i]))
-            #print(self.std_list[i])
-            #print(self.df_experiment_list[i])
 
     def compute_summary(self):
+        ''' Compute the summary of the results of the experiment. A dataframe is created to contains the results.
+        '''
 
         for i in range(len(self.std_list)):
             for distance_type in self.distance_measure_list:
@@ -213,6 +274,13 @@ class Nawba_Recognition_Experiment:
         #print(self.df_summary)
 
     def compute_confusion_matrix(self, distance, std):
+        ''' Compute the confusion matrix using the result of the experiment with the selected distance and standard
+        deviation standard
+
+        :param distance: distance measure
+        :param std: standard deviation value
+        :return: confusion matrix
+        '''
 
         index_std = self.std_list.index(std)
         y_pred = list()
@@ -223,6 +291,15 @@ class Nawba_Recognition_Experiment:
         return cnf_matrix
 
     def save_scores_models(self, notes_avg_nawba_list, y_avg_nawba_list, x_model, y_models_list, std, dir_path):
+        ''' Save the plot of templates used in the experiment in the experiment directory
+
+        :param notes_avg_nawba_list: label of the notes in the pitch class distribution (x-axis)
+        :param y_avg_nawba_list: values of the pitch class distribution
+        :param x_model: x-axis values of the templates
+        :param y_models_list: y-axis values of the templates
+        :param std: standard deviation
+        :param dir_path: directory where the figure will be saved
+        '''
 
         for i in range(len(notes_avg_nawba_list)):
             emph_fontsize = 30
@@ -231,7 +308,7 @@ class Nawba_Recognition_Experiment:
             x_fake = list((i) for i in range(len(notes_avg_nawba_list[i])))
             ax1.tick_params(labelsize=normal_fontsize)
             ax1.bar(x_fake, y_avg_nawba_list[i], tick_label=notes_avg_nawba_list[i])
-            ax1.set_title("Avarage score - nawba {}".format(self.get_nawba_list()[i]), fontsize=emph_fontsize)
+            ax1.set_title("Avarage Pitch Class Distribution - nawba {}".format(self.get_nawba_list()[i]), fontsize=emph_fontsize)
             ax1.set_xlabel("Notes", fontsize=emph_fontsize)
             ax1.set_ylabel("Occurances %", fontsize=emph_fontsize)
             ax2.tick_params(labelsize=normal_fontsize)
@@ -242,10 +319,21 @@ class Nawba_Recognition_Experiment:
             file_name = "avg_score_template-nawba{}".format(self.get_nawba_list()[i])
             if not os.path.exists(dir_path):
                 os.makedirs(dir_path)
-            f.savefig(os.path.join(dir_path, file_name), dpi=300)
+            f.savefig(os.path.join(dir_path, file_name)) #, dpi=300
             plt.close(f)
 
     def save_best_shifted_recording_plot(self, rmbid, x_s, y_s, y_s_f, shift, predicted_nawba, dir_path):
+        ''' Save the plot of the best match with the template that provide the predicted nawba
+
+        :param rmbid: musicbrainz id of the tested recording
+        :param x_s: x-axis values for the pitch distribution of the recording and of the template
+        :param y_s: y-axis values for the pitch distribution of the recording
+        :param y_s_f: y-axis values of the template
+        :param shift: shift value to obtain the best match
+        :param predicted_nawba: predicted nawba
+        :param dir_path: directory where the figure will be saved
+        '''
+
         emph_fontsize = 30
         normal_fontsize = 24
         fig = plt.figure(figsize=(20, 10))
@@ -263,7 +351,7 @@ class Nawba_Recognition_Experiment:
 
         if not os.path.exists(dir_path):
             os.makedirs(dir_path)
-        plt.savefig(os.path.join(dir_path, file_name), dpi=300)
+        plt.savefig(os.path.join(dir_path, file_name))
         plt.close(fig)
 
 # ---------------------------------------- END EXPERIMENT CLASS ----------------------------------------
@@ -309,6 +397,13 @@ def plot_confusion_matrix(cm, classes,
     plt.show()
 
 def calculate_overall_confusion_matrix(experiment_list, distance, std):
+    ''' Calculate the overall confusion matrix of a set of experiment
+
+    :param experiment_list: list of experiment object
+    :param distance: distance measure
+    :param std: standard deviation value
+    :return: np matrix with the confusion matrix
+    '''
     cnf_list = list()
     df_cnf_list = list()
     for experiment in experiment_list:
@@ -327,9 +422,11 @@ def calculate_overall_confusion_matrix(experiment_list, distance, std):
 
     return np.asarray(df_cnf_total.values.tolist())
 
-def export_overall_experiment(experiment_list, source_path):
-    # create the main directory
+def export_overall_experiment(experiment_list):
+    ''' export in csv the results of the single experiment and the overall ones
 
+    :param experiment_list: list of experiment object
+    '''
 
     for i in range(len(experiment_list)):
         exp_dir = experiment_list[i].experiment_dir
@@ -339,6 +436,8 @@ def export_overall_experiment(experiment_list, source_path):
 
         for j in range(len(experiment_list[0].std_list)):
             std_dir = os.path.join(exp_dir, str(experiment_list[0].std_list[j]))
+            if not os.path.exists(std_dir):
+                os.makedirs(std_dir)
             experiment_result_filename = "{} - {}.csv".format(exp_name, experiment_list[i].std_list[j])
             path_filename_result = os.path.join(std_dir, experiment_result_filename)
             experiment_list[i].df_experiment_list[j].to_csv(path_filename_result, sep=';', encoding="utf-8")
@@ -351,6 +450,7 @@ def export_overall_experiment(experiment_list, source_path):
         df_overall = df_overall.add(experiment_list[index + 1].df_summary)
     df_overall = df_overall.divide(len(experiment_list))
     overall_filename = "overall_results.csv"
+    source_path = experiment_list[0].source_dir
     path_filename_overall = os.path.join(source_path, overall_filename)
     df_overall.to_csv(path_filename_overall, sep=';', encoding="utf-8")
 

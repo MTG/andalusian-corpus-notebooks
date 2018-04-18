@@ -36,17 +36,17 @@ FN_TONIC_TYPE = [FN_TONIC_NO_FILT, FN_TONIC_FILT, FN_TONIC_SEC]
 # File name for text file
 FNT_PITCH = 'pitch.txt'
 FNT_PITCH_FILT = 'pitch_filtered.txt'
-XML_SUFFIX = '-symbtrxml.xml'
+XML_SUFFIX = '.xml'
 
 ACCEPTED_TYPE = ['mp3', 'score', 'wav', FN_PITCH, FNT_PITCH, FN_TONIC_NO_FILT, FN_TONIC_FILT, FN_TONIC_SEC, FN_PITCH_FILT, FNT_PITCH_FILT,
                  FN_PD, FN_METADATA]
 
 # Path in Dunya
 API_PATH = 'api/andalusian/'
-DUNYA_TOKEN = '1caad80ef12b4d47accfd26b01c9062da834825f' # put your DUNYA_TOKEN here
+DUNYA_TOKEN = '' # put your DUNYA_TOKEN here
 
 # GUI
 OPTION_LIST = ['mp3', 'score', 'MB metadata', 'analysis json', 'analysis text', 'wav']
 
 # distance measures for experiments
-DISTANCE_MEASURES = ["city block (L1)", "euclidian (L2)", "correlation", "canberra"]
+DISTANCE_MEASURES = ["city block (L1)", "euclidean (L2)", "correlation", "canberra"]
