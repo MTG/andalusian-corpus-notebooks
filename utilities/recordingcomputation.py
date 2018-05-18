@@ -701,20 +701,47 @@ def get_nawba_using_models_from_scores(exp, rmbid, y_models_list, distance_type,
     fake_tonic_index = vals.index(max(vals))
     fake_tonic = bins[fake_tonic_index]
 
-    # calculate the unfolded pitch distribution with the fake tonic
+    # calculate the folded pitch distribution with the fake tonic
     histograms = {}
     histograms[rmbid] = [[vals, bins], fake_tonic]
     x, y = compute_overall_histogram(histograms)
     x_reference, y_reference = fold_histogram(x, y, NUM_CENTS, 50)
+    nawba_list = exp.get_nawba_list()
+
+    if plot_flag:
+        recording_value_queue = deque(y_reference)
+
+        # find best match with the model for the correct nawba
+        best_distance_value = 100000
+        best_shift = 0
+
+        # get correct nawba
+        correct_nawba = exp.do.cm.get_characteristic(rmbid, DF_LISTS[2])
+        correct_model_index = nawba_list.index(correct_nawba)
+
+        # get the best match for the correct nawba
+        for shift_value in range(NUM_CENTS):
+            shifted_recording_values = list(recording_value_queue)
+            distance_value = get_distance(exp, shifted_recording_values, y_models_list[correct_model_index], distance_type)
+            recording_value_queue.rotate(1)
+            if distance_value < best_distance_value:
+                best_distance_value = distance_value
+                best_shift = shift_value
+
+        # need to print the best
+        best_y = deque(y_reference)
+        best_y.rotate(best_shift)
+
+        path_dir = os.path.join(exp.experiment_dir, str(std), "correct_nawba_matches")
+        exp.save_best_shifted_recording_plot(rmbid, x_reference, best_y, y_models_list[correct_model_index], best_distance_value,
+                                             nawba_list[correct_model_index], path_dir)
+
+    # predict the nawba from all the model
     recording_value_queue = deque(y_reference)
 
     best_model = 0
     best_distance_value = 100000
     best_shift = 0
-
-    nawba_list = exp.get_nawba_list()
-    #print(nawba_list)
-    #df_results_temp = pd.DataFrame(columns=nawba_list, index = range(NUM_CENTS))
 
     for model_index in range(len(exp.y_avg_nawba_list)):
         for shift_value in range(NUM_CENTS):
@@ -733,10 +760,11 @@ def get_nawba_using_models_from_scores(exp, rmbid, y_models_list, distance_type,
     best_y = deque(y_reference)
     best_y.rotate(best_shift)
 
-    nawba_list = exp.get_nawba_list()
-    path_dir = os.path.join(exp.experiment_dir, str(std) ,"best_matches")
     if plot_flag:
-        exp.save_best_shifted_recording_plot(rmbid, x_reference, best_y, y_models_list[best_model],  best_shift, nawba_list[best_model], path_dir)
+        path_dir = os.path.join(exp.experiment_dir, str(std), "best_matches")
+        #exp.save_best_shifted_recording_plot(rmbid, x_reference, best_y, y_models_list[best_model],  best_shift, nawba_list[best_model], path_dir)
+        exp.save_best_shifted_recording_plot(rmbid, x_reference, best_y, y_models_list[best_model], best_distance_value,
+                                             nawba_list[best_model], path_dir)
 
     #print(nawba_list[best_model])
     return nawba_list[best_model]

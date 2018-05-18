@@ -322,7 +322,7 @@ class Nawba_Recognition_Experiment:
             f.savefig(os.path.join(dir_path, file_name)) #, dpi=300
             plt.close(f)
 
-    def save_best_shifted_recording_plot(self, rmbid, x_s, y_s, y_s_f, shift, predicted_nawba, dir_path):
+    def save_best_shifted_recording_plot(self, rmbid, x_s, y_s, y_s_f, distance, predicted_nawba, dir_path):
         ''' Save the plot of the best match with the template that provide the predicted nawba
 
         :param rmbid: musicbrainz id of the tested recording
@@ -339,15 +339,19 @@ class Nawba_Recognition_Experiment:
         fig = plt.figure(figsize=(20, 10))
         plt.plot(x_s, y_s_f, label="template_{}".format(predicted_nawba), linewidth=4)
         plt.plot(x_s, y_s, label="shifted recording", linewidth=4)
-
-        plt.title("{} - shift {}".format(rmbid, shift), fontsize=emph_fontsize)
+        # round distance value
+        distance = "{0:.4f}".format(distance)
+        plt.title("{} - distance {}".format(rmbid, distance), fontsize=emph_fontsize)
         plt.xlabel("Cents", fontsize=emph_fontsize)
         plt.ylabel("Occurances", fontsize=emph_fontsize)
         plt.xticks(fontsize = normal_fontsize)
         plt.yticks(fontsize = normal_fontsize)
 
         plt.legend(fontsize = normal_fontsize)
-        file_name = "{}_shift_{}".format(rmbid, shift)
+
+        distance = str(distance).replace(".", "_")
+
+        file_name = "{}_distance_{}".format(rmbid, distance)
 
         if not os.path.exists(dir_path):
             os.makedirs(dir_path)
