@@ -6,10 +6,11 @@
 
 import os
 import csv
+import json
 import time
+import zipfile
 import pandas as pd
 import numpy as np
-import json
 
 def get_interval(end, start):
     e = time.strptime(end, "%H:%M:%S")
@@ -50,4 +51,19 @@ def list_intersection(a,b):
 
 def gaussian(x, mu, sig):
     return np.exp(-np.power(x - mu, 2.) / (2 * np.power(sig, 2.)))
+
+def extract_files_from_zip(recordings_dir, zip_path):
+    # if the directory doesn't exist, it create the directory
+    if not os.path.exists(recordings_dir):
+        os.makedirs(recordings_dir)
+
+    # check if the zip file exists
+    if zipfile.is_zipfile(zip_path):
+        # extract all the files in the zip file in the directory. NB: it overwrite all the existing files
+        zip_ref = zipfile.ZipFile(zip_path, 'r')
+        zip_ref.extractall(recordings_dir)
+        print("Zip Extracted!")
+        zip_ref.close()
+    else:
+        raise Exception("{} is not a zip file".format(zip_path))
 

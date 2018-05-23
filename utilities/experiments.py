@@ -55,7 +55,7 @@ class DataSet:
         :param rmbid_list: list of music brainz id
         '''
 
-        # check if the list of mbid in the corpora
+        # check if the list of mbid in the corpus
         self.rmbid_list += rmbid_list
         correct_list, incorrect_list = self.cm.check_rmbid_list_before_download(rmbid_list)
         if len(incorrect_list) > 0:
@@ -189,9 +189,6 @@ class Nawba_Recognition_Experiment:
 
         self.df_summary = pd.DataFrame(0, columns=self.summary_attributes, index = standard_deviation_list)
 
-        # create the histograms of the duration of the notes
-        self.notes_avg_nawba_list, self.y_avg_nawba_list = compute_folded_avg_scores(self)
-
     def get_train_mbid_by_nawba(self, nawba):
         ''' Return the list of recordings in the training set belong to a selected nawba
 
@@ -235,9 +232,46 @@ class Nawba_Recognition_Experiment:
         '''
         return self.do.get_nawba_list()
 
+    def compute_folded_avg_scores(self):
+        # get the different nawba in the Training set
+        nawba_list = self.get_nawba_list()
+        notes_avg_nawba_list = list()
+        y_avg_nawba_list = list()
+        # compute the avarage score bar for every nawba
+        for nawba in nawba_list:
+            nawba_mbid_list = self.get_train_mbid_by_nawba(nawba)
+            list_notes_temp, y_temp = get_folded_score_histogram(RECORDINGS_DIR, nawba_mbid_list)
+            # convert duration in percentage
+            tot_y_temp = sum(y_temp)
+            y_temp[:] = [y / tot_y_temp for y in y_temp]
+            notes_avg_nawba_list.append(list_notes_temp)
+            y_avg_nawba_list.append(y_temp)
+        return notes_avg_nawba_list, y_avg_nawba_list
+
+    def get_recordings_without_experiment_files(self):
+        missing_files_recording_list = list()
+        for rmbid in self.do.get_rmbid_list():
+            if not check_file_of_rmbid(RECORDINGS_DIR, rmbid, "score"):
+                missing_files_recording_list.append(rmbid)
+            if not check_file_of_rmbid(RECORDINGS_DIR, rmbid, FN_PD) and not rmbid in missing_files_recording_list:
+                missing_files_recording_list.append(rmbid)
+        return missing_files_recording_list
+
     def run(self, plot_flag = False):
         ''' Function to run the nawba recognition experiment
         '''
+
+        # check if all the files necessary for the experiment exists
+        missing_rec = self.get_recordings_without_experiment_files()
+        if len(missing_rec) != 0:
+            raise Exception ("{} recording/s is/are missing".format(str(missing_rec)))
+
+        # create the histograms of the duration of the notes
+        self.notes_avg_nawba_list, self.y_avg_nawba_list = self.compute_folded_avg_scores()
+
+        print("Template Created")
+
+        # run the experiment
         for i in range(len(self.std_list)):
 
             # convert pitch class distribution in templates
@@ -471,6 +505,8 @@ def export_overall_experiment(experiment_list):
     plot_confusion_matrix(overall_conf_matrix, classes, normalize=True,
                           title="Confusion matrix - {} - {}".format(experiment_list[0].distance_measure_list[max_value_index], max_std), cmap=plt.cm.Blues,
                           plot=True, path_directory=source_path)
+
+
 
     # -------------------------------------------------- OLD --------------------------------------------------
     # -------------------------------------------------- NOT CHECKED --------------------------------------------------

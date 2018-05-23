@@ -2,3 +2,9 @@
 .idea/
 data
 test
+dataset_test.csv
+Experiments_Test.ipynb
+Corpora_Test.ipynb
+Metadata_Test.ipynb
+Pitch_Analysis_Test.ipynb
+Various_Test.ipynb

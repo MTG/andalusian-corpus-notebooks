@@ -41,7 +41,7 @@ def check_file_of_rmbid(recordings_dir, rmbid, file_type_name):
 
     :param recordings_dir: directory where are contained all the recording directories
     :param rmbid: Music Brainz Id of the recording
-    :param file_type_name: type of file. Possible values: 'mp3', 'pitch', 'pitch_distribution', 'tonic', 'score'
+    :param file_type_name: type of file. Possible values: 'mp3', 'score', "wav" and other indicated in ACCEPTED_TYPE (constants.py)
     :return: True if the file exists. Otherwise False
     '''
 
@@ -650,22 +650,6 @@ def get_customized_score_histogram(recordings_folder, mbid_list, fold_flag):
         return get_folded_score_histogram(recordings_folder, mbid_list)
     else:
         return get_unfolded_score_histogram(recordings_folder, mbid_list)
-
-def compute_folded_avg_scores(exp):
-    # get the different nawba in the Training set
-    nawba_list = exp.get_nawba_list()
-    notes_avg_nawba_list = list()
-    y_avg_nawba_list = list()
-    # compute the avarage score bar for every nawba
-    for nawba in nawba_list:
-        nawba_mbid_list = exp.get_train_mbid_by_nawba(nawba)
-        list_notes_temp, y_temp = get_folded_score_histogram(RECORDINGS_DIR, nawba_mbid_list)
-        # convert duration in percentage
-        tot_y_temp = sum(y_temp)
-        y_temp[:] = [y / tot_y_temp for y in y_temp]
-        notes_avg_nawba_list.append(list_notes_temp)
-        y_avg_nawba_list.append(y_temp)
-    return notes_avg_nawba_list, y_avg_nawba_list
 
 def convert_folded_scores_in_models(y_list, std):
     # convert the score in distribution using gaussian
