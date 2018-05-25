@@ -35,7 +35,7 @@ class VisualizeDataframeGui:
         self.avg_times_values = list()
 
         self.column_titles = ['# recordings', '# sections', 'overall sections time', 'avg sections time']
-        self.tab_title = ['Tabs', 'Nawbas', 'Myazen', 'Forms']
+        self.tab_title = ['Tubu', 'Nawabat', 'Myazen', 'Forms']
 
         # create the tabs content
         for characteristic in DF_LISTS[1:5]:
