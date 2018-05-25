@@ -11,15 +11,11 @@ This repository contains a docker-compose file to run a Jupyter server and the n
 
 ## Installation
 To run the notebooks, you need to first install docker. Here you can find the links to installation instructions for different operative systems:
+* **Windows**: https://docs.docker.com/docker-for-windows/install/
 
-### Windows
-https://docs.docker.com/docker-for-windows/install/
+* **Mac**: https://docs.docker.com/docker-for-mac/install/
 
-### Mac
-https://docs.docker.com/docker-for-mac/install/
-
-### Ubuntu
-https://docs.docker.com/engine/installation/linux/docker-ce/ubuntu/#install-docker-ce
+* **Ubuntu*: https://docs.docker.com/engine/installation/linux/docker-ce/ubuntu/#install-docker-ce
 
 Download and the installation of the docker image will be automatic when using for the first time the command in the next section.
 
