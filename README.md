@@ -33,7 +33,7 @@ Then, you can access the notebooks from the browser and run them. All the notebo
 #### NB: the computation of the data and metadata can require a couple of days. For this reason, the nawba recognition experiment includes a zip file with the necessary pre-computed files.
 
 ## Credits
-This work is based on a collaboration between *Niccolò Pretto*, *Barış Bozkurt*, *Rafael Caro Repetto* and *Xavier Serra*, as part of the project **Musical Bridges** (https://www.upf.edu/web/musicalbridges). The notebooks use the Arab Andalusian Corpus in Dunya, created during the **CompMusic** project (http://compmusic.upf.edu/).
+This work is based on a collaboration between [*Niccolò Pretto*](http://www.dei.unipd.it/~prettoni/), *Barış Bozkurt*, *Rafael Caro Repetto* and *Xavier Serra*, as part of the project [**Musical Bridges**](https://www.upf.edu/web/musicalbridges). The notebooks use the Arab Andalusian Corpus in Dunya, created during the [**CompMusic**](http://compmusic.upf.edu/) project.
 
 These notebooks are based on **MIR-docker-extension** (https://github.com/MTG/MIR-docker-extension).
 The repository includes snippets of code and algorithms from the following repositories:
