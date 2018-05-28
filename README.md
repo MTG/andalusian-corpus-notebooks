@@ -2,7 +2,7 @@
 
 ## Description
 
-This repository contains a docker-compose file to run a Jupyter server and the notebooks to download and analyse data and metadata from the Arab Andalusian Corpus of Dunya (http://dunya.compmusic.upf.edu/). This repository contains four notebooks:
+This repository contains a docker-compose file to run a Jupyter server and the notebooks to download and analyse data and metadata from the Arab Andalusian Corpus of [Dunya](http://dunya.compmusic.upf.edu/). This repository contains four notebooks:
 
 *  **Corpus.ipynb**:  to download data and metadata from the Corpus, to compute the pitch profile, distribution and the tonic frequency of each recording;
 * **Metadata.ipynb**: to group, visualize and analyse metadata;
@@ -11,7 +11,7 @@ This repository contains a docker-compose file to run a Jupyter server and the n
 
 ## Installation
 To run the notebooks, you need to first install docker. Here you can find the links to installation instructions for different operative systems:
-* **Windows**: https://docs.docker.com/docker-for-windows/install/
+* **Windows**: https://docs.docker.com/toolbox/overview/
 
 * **Mac**: https://docs.docker.com/docker-for-mac/install/
 
@@ -29,6 +29,7 @@ sudo docker-compose up
 This would install a docker image (first time, it would download the image of size ~2Gb) and provide a web link (http://0.0.0.0:8888). Clicking or copy-pasting this link to a browser, one can access ipython notebooks (Windows users: http://{YourIPaddress}:8888). The password required is *mir*.
 
 Then, you can access the notebooks from the browser and run them. All the notebooks contain their user guides.
+The use of Dunya data and metadata required the registration to [Dunya](http://dunya.compmusic.upf.edu/). After the registration, a personal token is provided. This token has to be inserted in the "constant.py" file in the "utilities" directory.
 
 #### NB: the computation of the data and metadata can require a couple of days. For this reason, the nawba recognition experiment includes a zip file with the necessary pre-computed files.
 
