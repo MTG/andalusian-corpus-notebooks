@@ -17,7 +17,7 @@ EXPERIMENT_RECORDINGS_DIR = os.path.join(EXPERIMENT_DIR, 'documents')
 PREFIX_JSON = 'andalusian_'
 
 DF_LISTS = ['recording', 'tab', 'nawba', 'mizan', 'form', 'description']
-COLUMNS_NAMES = ['name', 'transliterated_name', 'uuid', 'display_order']
+COLUMNS_NAMES = ['name', 'transliterated_name',  'display_order', 'uuid', 'id']
 COLUMNS_RECORDINGS = ['title', 'transliterated_title', 'archive_url', 'musescore_url']
 COLUMNS_DESCRIPTION = ['mbid', 'section', 'tab', 'nawba', 'mizan', 'form', 'start_time', 'end_time', 'duration']
 STATISTIC_TYPE = ['# recordings', '# sections', 'overall sections time', 'avg sections time']

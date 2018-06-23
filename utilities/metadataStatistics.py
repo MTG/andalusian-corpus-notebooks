@@ -30,15 +30,19 @@ class CollectionMetadata:
         self.mbid_no_sections = list()
 
         df_list = []
+        id_name = COLUMNS_NAMES[3]
         # NB: indexes of the following dataframes are the 'uuid' of every object in the json file
         for i in range(1,5):
             # create a dataframe for each list
-            df = pd.DataFrame(columns=COLUMNS_NAMES)
+            df = pd.DataFrame(columns=COLUMNS_NAMES[0:3])
             with open(os.path.join(DATA_DIR, PREFIX_JSON + DF_LISTS[i] + '.json')) as json_file:
                 file = json.load(json_file)
 
             for row in file['results']:
-                new_row = pd.DataFrame({COLUMNS_NAMES[0]: row[COLUMNS_NAMES[0]], COLUMNS_NAMES[1]:row[COLUMNS_NAMES[1]]}, index = [row[COLUMNS_NAMES[2]]])
+                if (not COLUMNS_NAMES[3] in row) and id_name == COLUMNS_NAMES[3]:
+                    id_name = COLUMNS_NAMES[4]
+
+                new_row = pd.DataFrame({COLUMNS_NAMES[0]: row[COLUMNS_NAMES[0]], COLUMNS_NAMES[1]:row[COLUMNS_NAMES[1]]}, index = [row[id_name]])
                 df = pd.concat([df, new_row])
             df_list.append(df)
 
@@ -77,12 +81,12 @@ class CollectionMetadata:
 
             for section in row['sections']:
                 # COLUMNS_DESCRIPTION = ['mbid', 'section', 'tab', 'nawba', 'mizan', 'form', 'start_time', 'end_time', 'duration']
-                # COLUMNS_NAMES = ['name', 'transliterated_name', 'uuid', 'display_order']
+                # COLUMNS_NAMES = ['name', 'transliterated_name', 'display_order', 'uuid']
 
-                t = section[COLUMNS_DESCRIPTION[2]][COLUMNS_NAMES[2]]
-                n = section[COLUMNS_DESCRIPTION[3]][COLUMNS_NAMES[2]]
-                m = section[COLUMNS_DESCRIPTION[4]][COLUMNS_NAMES[2]]
-                f = section[COLUMNS_DESCRIPTION[5]][COLUMNS_NAMES[2]]
+                t = section[COLUMNS_DESCRIPTION[2]][id_name]
+                n = section[COLUMNS_DESCRIPTION[3]][id_name]
+                m = section[COLUMNS_DESCRIPTION[4]][id_name]
+                f = section[COLUMNS_DESCRIPTION[5]][id_name]
                 s = get_seconds(section[COLUMNS_DESCRIPTION[6]])
                 e = get_seconds(section[COLUMNS_DESCRIPTION[7]])
                 mi = get_interval(section[COLUMNS_DESCRIPTION[7]], section[COLUMNS_DESCRIPTION[6]])
