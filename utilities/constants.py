@@ -17,7 +17,7 @@ EXPERIMENT_RECORDINGS_DIR = os.path.join(EXPERIMENT_DIR, 'documents')
 PREFIX_JSON = 'andalusian_'
 
 DF_LISTS = ['recording', 'tab', 'nawba', 'mizan', 'form', 'description']
-COLUMNS_NAMES = ['name', 'transliterated_name']
+COLUMNS_NAMES = ['name', 'transliterated_name', 'uuid', 'display_order']
 COLUMNS_RECORDINGS = ['title', 'transliterated_title', 'archive_url', 'musescore_url']
 COLUMNS_DESCRIPTION = ['mbid', 'section', 'tab', 'nawba', 'mizan', 'form', 'start_time', 'end_time', 'duration']
 STATISTIC_TYPE = ['# recordings', '# sections', 'overall sections time', 'avg sections time']
@@ -41,12 +41,15 @@ XML_SUFFIX = '.xml'
 ACCEPTED_TYPE = ['mp3', 'score', 'wav', FN_PITCH, FNT_PITCH, FN_TONIC_NO_FILT, FN_TONIC_FILT, FN_TONIC_SEC, FN_PITCH_FILT, FNT_PITCH_FILT,
                  FN_PD, FN_METADATA]
 
-# Path in Dunya
-API_PATH = 'api/andalusian/'
-DUNYA_TOKEN = '' # put your DUNYA_TOKEN here
-
 # GUI
 OPTION_LIST = ['mp3', 'score', 'MB metadata', 'analysis json', 'analysis text', 'wav']
 
 # distance measures for experiments
 DISTANCE_MEASURES = ["city block (L1)", "euclidean (L2)", "correlation", "canberra"]
+
+# Characteristics name (musical entities)
+CHARACTERISTICS_NAMES = ['ṭāb‘', 'nawba', 'mīzān', 'form']
+
+# Path in Dunya
+API_PATH = 'api/andalusian/'
+DUNYA_TOKEN = '' # put your DUNYA_TOKEN here

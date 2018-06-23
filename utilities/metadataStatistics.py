@@ -30,7 +30,7 @@ class CollectionMetadata:
         self.mbid_no_sections = list()
 
         df_list = []
-        # NB: indexes of the following dataframes are the 'id' of every object in the json file
+        # NB: indexes of the following dataframes are the 'uuid' of every object in the json file
         for i in range(1,5):
             # create a dataframe for each list
             df = pd.DataFrame(columns=COLUMNS_NAMES)
@@ -38,7 +38,7 @@ class CollectionMetadata:
                 file = json.load(json_file)
 
             for row in file['results']:
-                new_row = pd.DataFrame({COLUMNS_NAMES[0]: row['name'], COLUMNS_NAMES[1]:row['transliterated_name']}, index = [row['id']])
+                new_row = pd.DataFrame({COLUMNS_NAMES[0]: row[COLUMNS_NAMES[0]], COLUMNS_NAMES[1]:row[COLUMNS_NAMES[1]]}, index = [row[COLUMNS_NAMES[2]]])
                 df = pd.concat([df, new_row])
             df_list.append(df)
 
@@ -55,34 +55,38 @@ class CollectionMetadata:
 
         # fill the first part of recordings dataframe with the data from recording dataframe
         for row in recordings_file['results']:
-            new_row = pd.DataFrame({COLUMNS_RECORDINGS[0]: row['title'], \
-                                    COLUMNS_RECORDINGS[1]: row['transliterated_title'], \
+            new_row = pd.DataFrame({COLUMNS_RECORDINGS[0]: row[COLUMNS_RECORDINGS[0]], \
+                                    COLUMNS_RECORDINGS[1]: row[COLUMNS_RECORDINGS[1]], \
                                     COLUMNS_RECORDINGS[2]: None, \
                                     COLUMNS_RECORDINGS[3]: None \
-                                    }, index=[row['mbid']])
+                                    }, index=[row[COLUMNS_DESCRIPTION[0]]])
             self.df_recording = pd.concat([self.df_recording, new_row])
 
         counter = 0
         for row in descriptions_file:
             # fill the second part of the recording dataframe
-            self.df_recording.at[row['mbid'], COLUMNS_RECORDINGS[2]] = row[COLUMNS_RECORDINGS[2]]
-            self.df_recording.at[row['mbid'], COLUMNS_RECORDINGS[3]] = row[COLUMNS_RECORDINGS[3]]
+            self.df_recording.at[row[COLUMNS_DESCRIPTION[0]], COLUMNS_RECORDINGS[2]] = row[COLUMNS_RECORDINGS[2]]
+            self.df_recording.at[row[COLUMNS_DESCRIPTION[0]], COLUMNS_RECORDINGS[3]] = row[COLUMNS_RECORDINGS[3]]
 
             # fill the description dataframe.
             # NB: They doesn't include the recording without the sections
-            mbid = row['mbid']
+            mbid = row[COLUMNS_DESCRIPTION[0]]
             counter_sec = 0
             if not row['sections']:
                 self.mbid_no_sections.append(mbid)
 
             for section in row['sections']:
-                t = int(section['tab']['id'])
-                n = int(section['nawba']['id'])
-                m = int(section['mizan']['id'])
-                f = int(section['form']['id'])
-                s = get_seconds(section['start_time'])
-                e = get_seconds(section['end_time'])
-                mi = get_interval(section['end_time'], section['start_time'])
+                # COLUMNS_DESCRIPTION = ['mbid', 'section', 'tab', 'nawba', 'mizan', 'form', 'start_time', 'end_time', 'duration']
+                # COLUMNS_NAMES = ['name', 'transliterated_name', 'uuid', 'display_order']
+
+                t = section[COLUMNS_DESCRIPTION[2]][COLUMNS_NAMES[2]]
+                n = section[COLUMNS_DESCRIPTION[3]][COLUMNS_NAMES[2]]
+                m = section[COLUMNS_DESCRIPTION[4]][COLUMNS_NAMES[2]]
+                f = section[COLUMNS_DESCRIPTION[5]][COLUMNS_NAMES[2]]
+                s = get_seconds(section[COLUMNS_DESCRIPTION[6]])
+                e = get_seconds(section[COLUMNS_DESCRIPTION[7]])
+                mi = get_interval(section[COLUMNS_DESCRIPTION[7]], section[COLUMNS_DESCRIPTION[6]])
+
                 self.df_description.loc[counter] = [mbid, counter_sec, t, n, m, f, s, e, mi]
                 counter_sec += 1
                 counter += 1

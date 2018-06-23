@@ -300,7 +300,8 @@ class SelectionGui:
         self.tab_len = tab_len
 
         # First Line - VBOXs ['tab', 'nawba', 'mizan', 'form']
-        dataframe_type_list = ['tab', 'nawba', 'mizan', 'form']
+
+        dataframe_type_list = DF_LISTS[1:5]
         self.first_line_labels = list()
         self.first_line_drop_down_menus = list()
         self.first_line_vboxes = list()
@@ -313,12 +314,13 @@ class SelectionGui:
 
         for characteristic in dataframe_type_list:
             # create a list of labels
-            self.first_line_labels.append(widgets.Label("   " + characteristic))
+            self.first_line_labels.append(widgets.Label("   " + CHARACTERISTICS_NAMES[dataframe_type_list.index(characteristic)]))
             # create a list of dropdown menus
             key_list = ['all']
             values_list = [0]
             for row in self.cm.get_dataframe(characteristic).index.tolist():
-                key_list.append(str(row) + ' - ' + str(self.cm.convert_id(row, characteristic, COLUMNS_NAMES[1])))
+                # key_list.append(str(row) + ' - ' + str(self.cm.convert_id(row, characteristic, COLUMNS_NAMES[1])))
+                key_list.append(str(self.cm.convert_id(row, characteristic, COLUMNS_NAMES[1])))
                 values_list.append(row)
             vals = list(zip(key_list, values_list))
             temp_widget = widgets.Dropdown(options= vals,\

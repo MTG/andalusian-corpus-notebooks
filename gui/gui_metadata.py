@@ -34,8 +34,9 @@ class VisualizeDataframeGui:
         self.times_values = list()
         self.avg_times_values = list()
 
-        self.column_titles = ['# recordings', '# sections', 'overall sections time', 'avg sections time']
-        self.tab_title = ['Tubu', 'Nawabat', 'Myazen', 'Forms']
+        # self.column_titles = ['# recordings', '# sections', 'overall sections time', 'avg sections time']
+        self.column_titles = STATISTIC_TYPE
+        self.tab_title = CHARACTERISTICS_NAMES # ['Tubu', 'Nawabat', 'Myazen', 'Forms']
 
         # create the tabs content
         for characteristic in DF_LISTS[1:5]:
@@ -116,7 +117,7 @@ class VisualizeDataframeGui:
 
 
 
-            columns += [widgets.VBox(children=indexes, layout=id_layout), \
+            columns += [#widgets.VBox(children=indexes, layout=id_layout), \
                         widgets.VBox(children=names, layout=box_layout),\
                         widgets.VBox(children=transliterated_names, layout=tran_layout),\
                         widgets.VBox(children=num_recordings, layout=box_layout),\
@@ -151,7 +152,7 @@ class VisualizeDataframeGui:
         self.type_selector.description = ""
 
         # create a selector for the tab
-        self.options_tab = [DF_LISTS[1], DF_LISTS[2], DF_LISTS[3], DF_LISTS[4]]
+        self.options_tab = DF_LISTS[1:5]
         label_dropdown_tab = widgets.Label('Select the type of data:')
         self.tab_selector = widgets.Dropdown(
             options=self.options_tab,
@@ -171,16 +172,16 @@ class VisualizeDataframeGui:
     def on_tab_change(self, change):
         self.tab_selector.value = DF_LISTS[self.tab.selected_index + 1]
 
-    def plot_bar_histogram(self, type, tab):
+    def plot_bar_histogram(self, type, tab):            # NB: tab is the widget, not the musical entity
         tab_index = self.options_tab.index(tab)
         self.type_selector.description = ""
         # Title
-        title = tab  + " - " + type
+        title = CHARACTERISTICS_NAMES[tab_index]  + " - " + type
         plt.figure(figsize=(20, 5))
         ax = plt.gca()
         ax.grid(True)
         plt.title(title)
-        plt.xlabel("tab id")
+        plt.xlabel(CHARACTERISTICS_NAMES[tab_index])
 
         if type == self.column_titles[0]:
             y = self.num_recordings_values[tab_index]
@@ -204,7 +205,12 @@ class VisualizeDataframeGui:
 
         # x value
         x = range(1,len(y)+1)
-        plt.xticks(x)
+        df = self.cm.get_dataframe(tab)
+        x_label = df[COLUMNS_NAMES[1]].tolist()
+        # ['al-istihlāl', 'al-iṣbahān', 'al-ḥiŷāz al-kabīr', 'al-ḥiŷāz al-māšriqī', 'al-raṣd', 'al-zerga', 'al-ṣīka', 'al-‘uššāq', 'al-māya', 'al-mašriquī', 'Nahawand', 'bawākir al-māya', 'mixed ṭubū‘', 'raṣd al-ḏāyl', 'Moroccan raṣd al-ḏāyl', 'raml al-māya', '‘irāq al-‘aŷam', 'garībat al-ḥusayn', 'similar to al-istihlāl', 'similar to al-māya']
+        #x = ["a1", "a2", "a3", "a4", "a5", "a6", "a7", "a8", "a9", "a10", "a11", "a12", "a13", "a14", "a15", "a16", "a17", "a18", "a19", "a20"]
+        # print(x)
+        plt.xticks(x, x_label, rotation='vertical')
         plt.bar(x,y)
 
 # -------------------------------------------------- CROSS INFORMATION --------------------------------------------------
@@ -214,7 +220,7 @@ class CrossMetadataVisualization:
     def __init__(self, MetadataObject):
         self.cm = MetadataObject
         # labels
-        labels = ["Column:", "Row: ", "Title: ", "Statistic:"]
+        labels = ["Column:", "Row: ", "Title: ", "Statistics:"]
         self.dropbox_menus = list()
         top_boxes = list()
         style_boxdropdown = widgets.Layout(width='25%')
@@ -225,10 +231,11 @@ class CrossMetadataVisualization:
                 self.dropbox_menus.append(widgets.Dropdown(options = DF_LISTS[1:5], value = DF_LISTS[i+1], layout = style_dropdown))
             else:
                 if i == 2:
-                    options_title = ['id', COLUMNS_NAMES[0], COLUMNS_NAMES[1]]
+                    # options_title = ['id', COLUMNS_NAMES[0], COLUMNS_NAMES[1]]
+                    options_title = [COLUMNS_NAMES[0], COLUMNS_NAMES[1]]
                     self.dropbox_menus.append(widgets.Dropdown(options = options_title, value = options_title[0], layout = style_dropdown))
                 else:
-                    self.options_title = STATISTIC_TYPE
+                    self.options_title = STATISTIC_TYPE[1:4]
                     self.dropbox_menus.append(widgets.Dropdown(options= self.options_title, value = self.options_title[0], layout = style_dropdown))
             top_boxes.append(widgets.VBox([label, self.dropbox_menus[i]], style = style_boxdropdown))
         first_line = widgets.HBox(top_boxes)
@@ -300,7 +307,7 @@ class CrossMetadataVisualization:
 
         self.second_line.description = "Results:"
 
-# -------------------------------------------------- CROSS INFORMATION --------------------------------------------------
+# -------------------------------------------------- SINGLE INFORMATION --------------------------------------------------
 
 class SingleRecordingVisualization:
 
@@ -327,7 +334,10 @@ class SingleRecordingVisualization:
 
         for row_index in df_recording.index.values.tolist():
             for column_index in columns_header:
-                temp_widget = widgets.Label(str(df_recording.loc[row_index, column_index]))
+                value = str(df_recording.loc[row_index, column_index])
+                if column_index in DF_LISTS[1:5]:
+                    value = self.cm.convert_id(value, column_index, COLUMNS_NAMES[1])
+                temp_widget = widgets.Label(value)
                 index = columns_header.index(column_index)
                 columns[index].append(temp_widget)
 

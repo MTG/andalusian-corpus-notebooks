@@ -22,7 +22,7 @@ from utilities.constants import *
 from utilities.recordingcomputation import *
 from external_utilities.corpusbasestatistics import *
 
-font = {'size'   : '40'}
+font = {'size': '40'}
 
 matplotlib.rc('font', **font)
 # ---------------------------------------- DATASET -------------------------------------------------
@@ -62,10 +62,10 @@ class DataSet:
             raise Exception("The mbid\s {} are not in Dunya".format(incorrect_list))
         for rmbid in rmbid_list:
             # get the nawba information
-            rmbid_nawba = self.cm.get_characteristic(rmbid, DATASET_ATTRIBUTES[0])
-            self.df_dataset.loc[rmbid, DATASET_ATTRIBUTES[0]] = int(rmbid_nawba)
-            if not (rmbid_nawba in self.nawba_list):
-                self.nawba_list.append(rmbid_nawba)
+            uuid_nawba = self.cm.get_characteristic(rmbid, DATASET_ATTRIBUTES[0])
+            self.df_dataset.loc[rmbid, DATASET_ATTRIBUTES[0]] = uuid_nawba
+            if not (uuid_nawba in self.nawba_list):
+                self.nawba_list.append(uuid_nawba)
         self.nawba_list = sorted(self.nawba_list)
 
     def get_nawba_list(self):
@@ -269,7 +269,7 @@ class Nawba_Recognition_Experiment:
         # create the histograms of the duration of the notes
         self.notes_avg_nawba_list, self.y_avg_nawba_list = self.compute_folded_avg_scores()
 
-        print("Template Created")
+        print("Templates Created")
 
         # run the experiment
         for i in range(len(self.std_list)):
@@ -342,15 +342,15 @@ class Nawba_Recognition_Experiment:
             x_fake = list((i) for i in range(len(notes_avg_nawba_list[i])))
             ax1.tick_params(labelsize=normal_fontsize)
             ax1.bar(x_fake, y_avg_nawba_list[i], tick_label=notes_avg_nawba_list[i])
-            ax1.set_title("Avarage Pitch Class Distribution - nawba {}".format(self.get_nawba_list()[i]), fontsize=emph_fontsize)
+            ax1.set_title("Avarage Pitch Class Distribution - nawba {}".format(self.do.cm.convert_id(self.get_nawba_list()[i], COLUMNS_DESCRIPTION[3], COLUMNS_NAMES[1])), fontsize=emph_fontsize)
             ax1.set_xlabel("Notes", fontsize=emph_fontsize)
             ax1.set_ylabel("Occurances %", fontsize=emph_fontsize)
             ax2.tick_params(labelsize=normal_fontsize)
             ax2.plot(x_model, y_models_list[i], linewidth=4)
             ax2.set_xlabel("Cents", fontsize=emph_fontsize)
             ax2.set_ylabel("Occurances %", fontsize=emph_fontsize)
-            ax2.set_title("Template with standard deviation {} - nawba {}".format(std, self.get_nawba_list()[i]), fontsize=emph_fontsize)
-            file_name = "avg_score_template-nawba{}".format(self.get_nawba_list()[i])
+            ax2.set_title("Template with standard deviation {} - nawba {}".format(std, self.do.cm.convert_id(self.get_nawba_list()[i], COLUMNS_DESCRIPTION[3], COLUMNS_NAMES[1])), fontsize=emph_fontsize)
+            file_name = "avg_score_template-nawba{}".format(self.do.cm.convert_id(self.get_nawba_list()[i], COLUMNS_DESCRIPTION[3], COLUMNS_NAMES[1]))
             if not os.path.exists(dir_path):
                 os.makedirs(dir_path)
             f.savefig(os.path.join(dir_path, file_name)) #, dpi=300
@@ -371,7 +371,7 @@ class Nawba_Recognition_Experiment:
         emph_fontsize = 30
         normal_fontsize = 24
         fig = plt.figure(figsize=(20, 10))
-        plt.plot(x_s, y_s_f, label="template_{}".format(predicted_nawba), linewidth=4)
+        plt.plot(x_s, y_s_f, label="template_{}".format(self.do.cm.convert_id(predicted_nawba, COLUMNS_DESCRIPTION[3], COLUMNS_NAMES[1])), linewidth=4)
         plt.plot(x_s, y_s, label="shifted recording", linewidth=4)
         # round distance value
         distance = "{0:.4f}".format(distance)
@@ -412,7 +412,7 @@ def plot_confusion_matrix(cm, classes,
     plt.title(title, fontsize=emph_fontsize)
     plt.colorbar()
     tick_marks = np.arange(len(classes))
-    plt.xticks(tick_marks, classes, rotation=0, fontsize=normal_fontsize)
+    plt.xticks(tick_marks, classes, rotation="vertical", fontsize=normal_fontsize)
     plt.yticks(tick_marks, classes, fontsize=normal_fontsize)
 
     fmt = '.2f' if normalize else 'd'
@@ -478,7 +478,14 @@ def export_overall_experiment(experiment_list):
                 os.makedirs(std_dir)
             experiment_result_filename = "{} - {}.csv".format(exp_name, experiment_list[i].std_list[j])
             path_filename_result = os.path.join(std_dir, experiment_result_filename)
-            experiment_list[i].df_experiment_list[j].to_csv(path_filename_result, sep=';', encoding="utf-8")
+            df_temp = experiment_list[i].df_experiment_list[j]
+            df_experiment_transliterated_temp = pd.DataFrame(columns=df_temp.columns.values.tolist(), index=df_temp.index.values.tolist())
+            for col_i in df_temp.columns.values.tolist():
+                for index_j in df_temp.index.values.tolist():
+                    transliterated_uuid = experiment_list[i].do.cm.convert_id(df_temp.loc[index_j,col_i], COLUMNS_DESCRIPTION[3], COLUMNS_NAMES[1])
+                    df_experiment_transliterated_temp.loc[index_j,col_i] = transliterated_uuid
+
+            df_experiment_transliterated_temp.to_csv(path_filename_result, sep=';', encoding="utf-8")
         summary_filename = "exp_{} - summary.csv".format(i+1)
         path_filename_summary = os.path.join(exp_dir, summary_filename)
         experiment_list[i].df_summary.to_csv(path_filename_summary, sep=';', encoding="utf-8")
@@ -499,10 +506,14 @@ def export_overall_experiment(experiment_list):
     max_std = df_overall.index.values.tolist()[index_value]
     overall_conf_matrix = calculate_overall_confusion_matrix(experiment_list, max_distance, max_std)
     classes = experiment_list[0].get_nawba_list()
-    plot_confusion_matrix(overall_conf_matrix, classes, normalize=False,
+    transliterated_classes = list()
+    for uuid_nawba in classes:
+        transliterated_classes.append(experiment_list[0].do.cm.convert_id(uuid_nawba, DF_LISTS[2], COLUMNS_NAMES[1]))
+
+    plot_confusion_matrix(overall_conf_matrix, transliterated_classes, normalize=False,
                           title="Confusion matrix - {} - {}".format(experiment_list[0].distance_measure_list[max_value_index], max_std), cmap=plt.cm.Blues,
                           plot=True, path_directory=source_path)
-    plot_confusion_matrix(overall_conf_matrix, classes, normalize=True,
+    plot_confusion_matrix(overall_conf_matrix, transliterated_classes, normalize=True,
                           title="Confusion matrix - {} - {}".format(experiment_list[0].distance_measure_list[max_value_index], max_std), cmap=plt.cm.Blues,
                           plot=True, path_directory=source_path)
 

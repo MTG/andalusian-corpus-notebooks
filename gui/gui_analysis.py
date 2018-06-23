@@ -50,11 +50,11 @@ class NawbaComparison:
         key_list = list()
         values_list = list()
         for row in self.cm.get_dataframe(DF_LISTS[2]).index.tolist():
-            key_list.append(str(row) + ' - ' + str(self.cm.convert_id(row, DF_LISTS[2], COLUMNS_NAMES[1])))
+            key_list.append(str(self.cm.convert_id(row, DF_LISTS[2], COLUMNS_NAMES[1])))
             values_list.append(row)
         vals = list(zip(key_list, values_list))
         self.nawba_widget = widgets.Dropdown(options=vals, \
-                                       value=1, layout=widgets.Layout(width='80%'))
+                                       value=values_list[0], layout=widgets.Layout(width='80%'))
 
         # Dropdown menu alignment
         self.align_dropdown = widgets.Dropdown(options=[("aligned graphs (3 octaves)",0), ("complete graphs", 1)], \
