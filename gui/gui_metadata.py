@@ -33,6 +33,7 @@ class VisualizeDataframeGui:
         self.num_sections_values = list()
         self.times_values = list()
         self.avg_times_values = list()
+        self.name_values = list()
 
         # self.column_titles = ['# recordings', '# sections', 'overall sections time', 'avg sections time']
         self.column_titles = STATISTIC_TYPE
@@ -59,18 +60,13 @@ class VisualizeDataframeGui:
             avg_times = [widgets.Label(self.column_titles[3])]
 
             # list of values
+            name_values = list()
             num_recordings_values = list()
             num_sections_values = list()
             times_values = list()
             avg_times_values = list()
 
             for index in df.index.values.tolist():
-                # column with indexes
-                indexes.append(widgets.Label(str(index)))
-
-                # second and third columns - COLUMNS_NAMES = ['name', 'transliterated_name']
-                names.append(widgets.Label(str(df.loc[index,COLUMNS_NAMES[0]])))
-                transliterated_names.append(widgets.Label(str(df.loc[index,COLUMNS_NAMES[1]])))
 
                 # number of track with this characteristic
                 if characteristic == DF_LISTS[1]:
@@ -78,24 +74,34 @@ class VisualizeDataframeGui:
                 if characteristic == DF_LISTS[2]:
                     list_value = self.cm.search_recording('all', index, 'all', 'all')
                 if characteristic == DF_LISTS[3]:
-                    list_value = self.cm.search_recording( 'all', 'all', index, 'all')
+                    list_value = self.cm.search_recording('all', 'all', index, 'all')
                 if characteristic == DF_LISTS[4]:
                     list_value = self.cm.search_recording('all', 'all', 'all', index)
 
-                num_recordings_values.append(len(list_value))
-                num_recordings.append(widgets.Label(str(len(list_value))))
+                if len(list_value) != 0:
 
-                # number of sections with this characteristic
-                num_sections_values.append(df_sections.loc[index,'num_sections'])
-                num_sections.append(widgets.Label(str(df_sections.loc[index,'num_sections'])))
+                    # column with indexes
+                    indexes.append(widgets.Label(str(index)))
 
-                # overall amount of time
-                times_values.append(df_times.loc[index,'time'])
-                times.append(widgets.Label(str(get_time(df_times.loc[index,'time']))))
+                    # second and third columns - COLUMNS_NAMES = ['name', 'transliterated_name']
+                    names.append(widgets.Label(str(df.loc[index,COLUMNS_NAMES[0]])))
+                    transliterated_names.append(widgets.Label(str(df.loc[index,COLUMNS_NAMES[1]])))
+                    name_values.append(str(df.loc[index,COLUMNS_NAMES[1]]))
 
-                # avarage amount of time
-                avg_times_values.append(df_avg.loc[index,'avg'])
-                avg_times.append(widgets.Label(str(get_time(df_avg.loc[index,'avg']))))
+                    num_recordings_values.append(len(list_value))
+                    num_recordings.append(widgets.Label(str(len(list_value))))
+
+                    # number of sections with this characteristic
+                    num_sections_values.append(df_sections.loc[index,'num_sections'])
+                    num_sections.append(widgets.Label(str(df_sections.loc[index,'num_sections'])))
+
+                    # overall amount of time
+                    times_values.append(df_times.loc[index,'time'])
+                    times.append(widgets.Label(str(get_time(df_times.loc[index,'time']))))
+
+                    # avarage amount of time
+                    avg_times_values.append(df_avg.loc[index,'avg'])
+                    avg_times.append(widgets.Label(str(get_time(df_avg.loc[index,'avg']))))
 
             id_layout = widgets.Layout(display='flex',\
                                 flex_flow='column',\
@@ -131,6 +137,7 @@ class VisualizeDataframeGui:
             self.num_sections_values.append(num_sections_values)
             self.times_values.append(times_values)
             self.avg_times_values.append(avg_times_values)
+            self.name_values.append(name_values)
 
             # add tab to children list
             self.children.append(widgets.HBox(columns))
@@ -177,40 +184,39 @@ class VisualizeDataframeGui:
         self.type_selector.description = ""
         # Title
         title = CHARACTERISTICS_NAMES[tab_index]  + " - " + type
-        plt.figure(figsize=(20, 5))
+        plt.figure(figsize=(20, 8))
         ax = plt.gca()
         ax.grid(True)
-        plt.title(title)
-        plt.xlabel(CHARACTERISTICS_NAMES[tab_index])
+        plt.title(title, fontsize=24)
+        plt.xlabel(CHARACTERISTICS_NAMES[tab_index], fontsize=22)
 
         if type == self.column_titles[0]:
             y = self.num_recordings_values[tab_index]
-            plt.ylabel("# recordings")
+            plt.ylabel("# recordings", fontsize=22)
         else:
             if type == self.column_titles[1]:
                 y = self.num_sections_values[tab_index]
-                plt.ylabel("# sections")
+                plt.ylabel("# sections", fontsize=22)
             else:
                 if type == self.column_titles[2]:
                     y = self.times_values[tab_index]
-                    plt.ylabel("hours")
+                    plt.ylabel("hours", fontsize=22)
                     plt.yticks(np.arange(0,max(self.times_values[tab_index]), 10800), (np.arange(0,max(self.times_values[tab_index]), 10800)/3600).astype(int))
                 else:
                     if type == self.column_titles[3]:
                         y = self.avg_times_values[tab_index]
-                        plt.ylabel("minutes")
+                        plt.ylabel("minutes", fontsize=22)
                         plt.yticks(np.arange(0, max(self.avg_times_values[tab_index]), 120), (np.arange(0, max(self.avg_times_values[tab_index]), 120)/60).astype(int))
                     else:
                         raise Exception("Value not exists")
-
+        plt.yticks(fontsize=18)
         # x value
         x = range(1,len(y)+1)
-        df = self.cm.get_dataframe(tab)
-        x_label = df[COLUMNS_NAMES[1]].tolist()
-        # ['al-istihlāl', 'al-iṣbahān', 'al-ḥiŷāz al-kabīr', 'al-ḥiŷāz al-māšriqī', 'al-raṣd', 'al-zerga', 'al-ṣīka', 'al-‘uššāq', 'al-māya', 'al-mašriquī', 'Nahawand', 'bawākir al-māya', 'mixed ṭubū‘', 'raṣd al-ḏāyl', 'Moroccan raṣd al-ḏāyl', 'raml al-māya', '‘irāq al-‘aŷam', 'garībat al-ḥusayn', 'similar to al-istihlāl', 'similar to al-māya']
-        #x = ["a1", "a2", "a3", "a4", "a5", "a6", "a7", "a8", "a9", "a10", "a11", "a12", "a13", "a14", "a15", "a16", "a17", "a18", "a19", "a20"]
-        # print(x)
-        plt.xticks(x, x_label, rotation='vertical')
+        #df = self.cm.get_dataframe(tab)
+        #x_label = df[COLUMNS_NAMES[1]].tolist()
+        x_label = self.name_values[tab_index]
+        plt.tight_layout()
+        plt.xticks(x, x_label, rotation=45, ha='right', fontsize=18)
         plt.bar(x,y)
 
 # -------------------------------------------------- CROSS INFORMATION --------------------------------------------------
