@@ -50,6 +50,18 @@ def check_the_score(rmbid):
             return True
     return False
 
+def check_the_lyrics(rmbid):
+    ''' Check if the lyrics exist in Dunya using the recording Music Brainz id
+
+    :param rmbid:  Music Brainz id of a recording
+    :return: True if the score is in Dunya
+    '''
+    doc = dunya.docserver.document(rmbid)
+    for source in doc['sourcefiles']:
+        if source == 'andalusian-lyrics':
+            return True
+    return False
+
 # -------------------------------------------------- DUNYA METADATA --------------------------------------------------
 
 def collect_metadata():
@@ -118,18 +130,20 @@ def get_recording(apipath, rmbid):
 
 # ---------------------------------------- DUNYA DATA ----------------------------------------
 
-def download_list_of(recordings_dir, rmbid_list, mp3_flag, score_flag, mb_flag, ow_flag):
+def download_list_of(recordings_dir, rmbid_list, mp3_flag, score_flag, lyrics_flag, pitch_flag, mb_flag, ow_flag):
     ''' Download mp3 and/or score and/or Music Brainz metadata for a list of recordings
 
     :param recordings_dir: directory where the data will be stored
     :param list_of_rmbid: list of recording Music Brainz id
     :param mp3_flag: if True mp3 will be downloaded
     :param score_flag: if True score will be downloaded (if available)
+    :param lyrics_flag: if True lyrics will be downloaded (if available)
+    :param pitch_flag: if True pitch will be downloaded
     :param mb_flag: if True Music Brainz metadata will be downloaded
     :param ow_flag: if True the files will be overwrite
     '''
 
-    if not mp3_flag and not score_flag and not mb_flag:
+    if not mp3_flag and not score_flag and not lyrics_flag and not pitch_flag and not mb_flag:
         print("No type of data selected")
     else:
         # create the main directory if it not exists
@@ -161,6 +175,23 @@ def download_list_of(recordings_dir, rmbid_list, mp3_flag, score_flag, mb_flag, 
                     else:
                         print(" - Score not in Dunya")
 
+            if lyrics_flag:
+                if not ow_flag and check_file_of_rmbid(recordings_dir, rmbid, 'lyrics'):
+                    print(" - Lyrics already exists")
+                else:
+                    if download_lyrics_from_dunya(rec_dir, rmbid):
+                        print(" - Lyrics downloaded")
+                    else:
+                        print(" - Lyrics not in Dunya")
+            if pitch_flag:
+                if not ow_flag and check_file_of_rmbid(recordings_dir, rmbid, 'pitch'):
+                    print(" - Pitch track already exists")
+                else:
+                    if download_pitch_from_dunya(rec_dir, rmbid):
+                        print(" - Pitch track downloaded")
+                    else:
+                        print(" - Pitch track not in Dunya")
+
             if mb_flag:
                 if not ow_flag and check_file_of_rmbid(recordings_dir, rmbid, FN_METADATA):
                     print(" - Music Brainz Metadata already exists")
@@ -186,7 +217,7 @@ def download_score_from_dunya (single_recording_dir, rmbid):
     ''' Download a symbtrxml of the score in the recording directory.
             It verifies if the score exist before to call the funtion to download the xml
 
-    :param score_folder: directory where the score will be stored
+    :param single_recording_dir: directory where the score will be stored
     :param rmbid: recording MusicBrainz ID
     :return: False if the score doesn't exist in Dunya, True the score exist and it is downloaded
     '''
@@ -202,6 +233,47 @@ def download_score_from_dunya (single_recording_dir, rmbid):
     path = os.path.join(single_recording_dir, name)
     open(path, "wb").write(score_xml)
 
+    return True
+
+def download_lyrics_from_dunya (single_recording_dir, rmbid):
+    ''' Download a lyrics file in the recording directory.
+            It verifies if the lyrics exist before to call the funtion to download the xml
+
+    :param single_recording_dir: directory where the lyrics will be stored
+    :param rmbid: recording MusicBrainz ID
+    :return: False if the score doesn't exist in Dunya, True the score exist and it is downloaded
+    '''
+    # check if the score exists
+    if not check_the_lyrics(rmbid):
+        return False
+
+    if not os.path.exists(single_recording_dir):
+        raise Exception("Location %s doesn't exist; can't save" % single_recording_dir)
+
+    result = dunya.docserver.file_for_document(rmbid, 'andalusian-lyrics').decode('utf-8')
+    name = rmbid + LYRICS
+    path = os.path.join(single_recording_dir, name)
+    with open(path, 'w') as path:
+            json.dump(result, path)
+    return True
+
+def download_pitch_from_dunya (single_recording_dir, rmbid):
+    ''' Download a pitch track file in the recording directory.
+            It verifies if the lyrics exist before to call the funtion to download the xml
+
+    :param single_recording_dir: directory where the pitch will be stored
+    :param rmbid: recording MusicBrainz ID
+    :return: False if the pitch track doesn't exist in Dunya, True if exist and it is downloaded
+    '''
+    # check if the score exists
+    if not os.path.exists(single_recording_dir):
+        raise Exception("Location %s doesn't exist; can't save" % single_recording_dir)
+
+    result = dunya.docserver.get_document_as_json(rmbid, "andalusianpitch", subtype="pitch_filt")
+    name = rmbid + PITCH
+    path = os.path.join(single_recording_dir, name)
+    with open(path, 'w') as path:
+            json.dump(result, path)
     return True
 
 # ---------------------------------------- MUSIC BRAINZ ----------------------------------------

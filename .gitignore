@@ -8,3 +8,5 @@ Corpora_Test.ipynb
 Metadata_Test.ipynb
 Pitch_Analysis_Test.ipynb
 Various_Test.ipynb
+*.pyc
+__pycache__

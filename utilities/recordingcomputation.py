@@ -55,7 +55,15 @@ def check_file_of_rmbid(recordings_dir, rmbid, file_type_name):
                 if file_type_name == 'wav':
                     fn = rmbid + '.wav'
                 else:
-                    fn = file_type_name
+                    if file_type_name == 'lyrics':
+                        fn = rmbid + LYRICS
+                    else:
+                        if file_type_name == 'pitch':
+                            fn = rmbid + PITCH
+                        else:                            
+                            fn = file_type_name
+                        
+
     else:
         raise Exception("file_type_name %s doesn't exist" % file_type_name)
 
@@ -315,9 +323,6 @@ def compute_list_of(cm, recordings_dir, rmbid_list, json_flag, txt_flag, wav_fla
                     convert_mp3_in_wav(single_recording_dir, rmbid)
                     print(" - Mp3 converted in wav file")
 
-def convert_mp3_in_wav(single_recording_dir, rmbid):
-    # TODO: convert mp3 in wav
-    return
 
 def get_sections_last_note_tonic(cm, rmbid):
     ''' Compute the tonic of the selected recording analyzing the tonic obtained from last note of each section

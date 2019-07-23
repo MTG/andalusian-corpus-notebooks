@@ -52,6 +52,20 @@ class DownloadGui:
             style=style
 
         )
+        self.check_lyrics = widgets.Checkbox(
+        value=True,
+        description='Lyrics file',
+        disabled=False,
+        style=style
+
+        )
+        self.check_pitch = widgets.Checkbox(
+        value=True,
+        description='Pitch track',
+        disabled=False,
+        style=style
+
+        )
 
         self.check_metadata = widgets.Checkbox(
             value=True,
@@ -78,7 +92,7 @@ class DownloadGui:
 
         left_label_box = widgets.Label("Select data type:" , layout = widgets.Layout(width='50%'))
         right_label_box = widgets.Label("Select option:", layout = widgets.Layout(width='50%'))
-        list_check = [self.check_mp3, self.check_score, self.check_metadata]
+        list_check = [self.check_mp3, self.check_score, self.check_lyrics, self.check_pitch, self.check_metadata]
         left_check_box = widgets.VBox(list_check, layout = widgets.Layout(width='50%'))
         right_check_box = widgets.VBox([self.download_option], layout = widgets.Layout(width='50%'))
         center_button_box = widgets.HBox([self.download_button], layout = widgets.Layout(width='100%'))
@@ -102,12 +116,12 @@ class DownloadGui:
 
             :param b: parameter passed by the button
         '''
-        if not self.check_mp3.value and not self.check_score.value and not self.check_metadata.value:
+        if not self.check_mp3.value and not self.check_score.value and not self.check_lyrics.value and not self.check_pitch.value and not self.check_metadata.value:
             print("No Data type selected")
         else:
             # disable all the checkboxs and the button
             self.disable_all()
-            download_list_of(RECORDINGS_DIR, self.rmbid_list, self.check_mp3.value, self.check_score.value, self.check_metadata.value, self.download_option.value)
+            download_list_of(RECORDINGS_DIR, self.rmbid_list, self.check_mp3.value, self.check_score.value, self.check_lyrics.value,  self.check_pitch.value, self.check_metadata.value, self.download_option.value)
             self.enable_all()
             print()
             print("Download complete")
@@ -118,6 +132,8 @@ class DownloadGui:
         '''
         self.check_mp3.disabled = True
         self.check_score.disabled = True
+        self.check_lyrics.disabled = True
+        self.check_pitch.disabled = True
         self.check_metadata.disabled = True
         self.download_option.disabled = True
         self.download_button = True
@@ -128,6 +144,8 @@ class DownloadGui:
         '''
         self.check_mp3.disabled = False
         self.check_score.disabled = False
+        self.check_lyrics.disabled = False
+        self.check_pitch.disabled = False
         self.check_metadata.disabled = False
         self.download_option.disabled = False
         self.download_button = False
@@ -339,7 +357,7 @@ class SelectionGui:
         # add first line in a HBox
         self.first_line_box = widgets.HBox(self.first_line_vboxes, layout=widgets.Layout(border='solid 1px', justify_content='center'))
 
-        # Second line - VBOXs ['mp3', 'score', 'MB metadata', 'analysis json', 'analysis text', 'wav']
+        # Second line - VBOXs ['mp3', 'score', 'lyrics', 'MB metadata', 'analysis json', 'analysis text', 'wav']
         self.second_title = widgets.Label("   SELECT OPTIONS: ")
 
 
@@ -382,7 +400,7 @@ class SelectionGui:
 
 
     def update_tab(self, rmbid_list):
-        ''' Update the tab widget with the new list of recodings
+        ''' Update the tab widget with the new list of recordings
 
         :param rmbid_list: list of Music Brainz id
         '''
@@ -391,6 +409,7 @@ class SelectionGui:
         self.results_check_boxes = list()
         self.results_descriptions_rmbid = list()
         self.results_descriptions_name = list()
+        self.results_descriptions_orchestra = list()
         self.results_hboxes = list()
 
         for rmbid in rmbid_list:
@@ -398,12 +417,15 @@ class SelectionGui:
             self.results_descriptions_rmbid.append(widgets.Label(rmbid))
             description_name_temp = self.cm.get_recording_translitered_title(rmbid)
             self.results_descriptions_name.append(widgets.Label(description_name_temp))
+            orchestra_name = self.cm.get_recording_orchestra_name(rmbid)
+            self.results_descriptions_orchestra.append(widgets.Label(orchestra_name))
             style = {'description_width': 'initial'}
             self.results_check_boxes.append(widgets.Checkbox(value=True, \
                                                              description=rmbid, \
                                                              style=style))
             self.results_hboxes.append(widgets.HBox([self.results_check_boxes[i],\
-                                                     self.results_descriptions_name[i]]))
+                                                     self.results_descriptions_name[i],\
+                                                     self.results_descriptions_orchestra[i]]))
 
         self.third_title.value = "   RESULTS (" + str(len(rmbid_list))  + "): "
 

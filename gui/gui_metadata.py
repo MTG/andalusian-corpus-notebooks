@@ -321,7 +321,8 @@ class SingleRecordingVisualization:
         self.cm = MetadataObject
 
         title_label = widgets.Label("MBID: " + str(rmbid))
-        mainBox = widgets.VBox([title_label, self.get_single_recording_box(rmbid)])
+        dunya_info = widgets.Label("DUNYA API info: dunya.compmusic.upf.edu/api/andalusian/recording/"+str(rmbid))
+        mainBox = widgets.VBox([title_label, dunya_info, self.get_single_recording_box(rmbid)])
 
         display(mainBox)
 

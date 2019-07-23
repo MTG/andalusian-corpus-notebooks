@@ -37,12 +37,14 @@ FN_TONIC_TYPE = [FN_TONIC_NO_FILT, FN_TONIC_FILT, FN_TONIC_SEC]
 FNT_PITCH = 'pitch.txt'
 FNT_PITCH_FILT = 'pitch_filtered.txt'
 XML_SUFFIX = '.xml'
+LYRICS = '_lyrics.json'
+PITCH = '_pitch.json'
 
-ACCEPTED_TYPE = ['mp3', 'score', 'wav', FN_PITCH, FNT_PITCH, FN_TONIC_NO_FILT, FN_TONIC_FILT, FN_TONIC_SEC, FN_PITCH_FILT, FNT_PITCH_FILT,
+ACCEPTED_TYPE = ['mp3', 'score', 'wav', 'lyrics', 'pitch', FN_PITCH, FNT_PITCH, FN_TONIC_NO_FILT, FN_TONIC_FILT, FN_TONIC_SEC, FN_PITCH_FILT, FNT_PITCH_FILT,
                  FN_PD, FN_METADATA]
 
 # GUI
-OPTION_LIST = ['mp3', 'score', 'MB metadata', 'analysis json', 'analysis text', 'wav']
+OPTION_LIST = ['mp3', 'score', 'lyrics', 'pitch', 'MB metadata', 'analysis json', 'analysis text', 'wav']
 
 # distance measures for experiments
 DISTANCE_MEASURES = ["city block (L1)", "euclidean (L2)", "correlation", "canberra"]
