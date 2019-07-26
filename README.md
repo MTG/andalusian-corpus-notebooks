@@ -4,7 +4,7 @@
 
 This repository contains a docker-compose file to run a Jupyter server and the notebooks to download and analyse data and metadata from the Arab Andalusian Corpus of [Dunya](http://dunya.compmusic.upf.edu/). This repository contains four notebooks:
 
-*  **Corpus.ipynb**:  to download data and metadata from the Corpus, to compute the pitch profile, distribution and the tonic frequency of each recording;
+* **Corpus.ipynb**:  to download data and metadata from the Corpus, to compute the pitch profile, distribution and the tonic frequency of each recording;
 * **Metadata.ipynb**: to group, visualize and analyse metadata;
 * **NawbaPitchAnalysis.ipynb**: to visualize pitch distribution and note/class distribution of a single recording or of a group of them.
 * **NawbaRecognition.ipynb**: to compute several experiments to evaluate the performance on nawba recognition of algorithms based on templates derived from scores.
@@ -17,19 +17,25 @@ To run the notebooks, you need to first install docker. Here you can find the li
 
 * **Ubuntu**: https://docs.docker.com/engine/installation/linux/docker-ce/ubuntu/#install-docker-ce
 
-Download and the installation of the docker image will be automatic when using for the first time the command in the next section.
-
 ## Usage
-As first step, run the Jupyter server.
-Then, in terminal, cd to your local folder for this repository and run the following command:
-```
-sudo docker-compose up
-```
 
-This would install a docker image (first time, it would download the image of size ~2Gb) and provide a web link (http://0.0.0.0:8888). Clicking or copy-pasting this link to a browser, one can access ipython notebooks (Windows users: http://{YourIPaddress}:8888). The password required is *mir*.
+In a terminal/console window, change to this directory
+
+On MacOS or Windows, run:
+
+    docker-compose up
+
+On Linux, run the following (this command ensures that any files you create are owned by your own user):
+
+    JUPYTER_USER_ID=$(id -u) docker-compose up
+
+The first time you run this command it will download the required docker images (about 2GB in size).
+
+Then accesss http://localhost:8888 with your browser and when asked for a
+password use the default password ***mir***
 
 Then, you can access the notebooks from the browser and run them. All the notebooks contain their user guides.
-The use of Dunya data and metadata required the registration to [Dunya](http://dunya.compmusic.upf.edu/). After the registration, a personal token is provided. This token has to be inserted in the "constant.py" file in the "utilities" directory.
+The use of Dunya data and metadata requires that you register with [Dunya](http://dunya.compmusic.upf.edu/). After the registration, a personal token is provided. This token has to be added in the `utilities/constants.py` file.
 
 #### NB: the computation of the data and metadata can require a couple of days. For this reason, the nawba recognition experiment includes a zip file with the necessary pre-computed files.
 
@@ -47,5 +53,3 @@ The repository includes snippets of code and algorithms from the following repos
 
 ## References
 [1] Pretto, N; Bozkurt, B; Caro Repetto, R; and Serra, X (2018) "Nawba Recognition for Arab-Andalusian Music using Templates from Music Scores", in Proceedings of the 15th Sound and Music Computing Conference (SMC2018), (in press).
-
-
