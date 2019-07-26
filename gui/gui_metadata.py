@@ -241,7 +241,7 @@ class CrossMetadataVisualization:
                     options_title = [COLUMNS_NAMES[0], COLUMNS_NAMES[1]]
                     self.dropbox_menus.append(widgets.Dropdown(options = options_title, value = options_title[0], layout = style_dropdown))
                 else:
-                    self.options_title = STATISTIC_TYPE[1:4]
+                    self.options_title = STATISTIC_TYPE#[1:4]
                     self.dropbox_menus.append(widgets.Dropdown(options= self.options_title, value = self.options_title[0], layout = style_dropdown))
             top_boxes.append(widgets.VBox([label, self.dropbox_menus[i]], style = style_boxdropdown))
         first_line = widgets.HBox(top_boxes)
