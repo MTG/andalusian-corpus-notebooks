@@ -56,4 +56,6 @@ The repository includes snippets of code and algorithms from the following repos
 
 
 ## References
-[1] Pretto, N; Bozkurt, B; Caro Repetto, R; and Serra, X (2018) "Nawba Recognition for Arab-Andalusian Music using Templates from Music Scores", in Proceedings of the 15th Sound and Music Computing Conference (SMC2018), (in press).
+[1] Caro Repetto, R; Pretto, N; Chaachoo, A; Bozkurt, B; and Serra X "An open corpus for the computational research of Arab-Andalusian music", in Proceedings of Proceedings of 5th International Conference on Digital Libraries for Musicology (DLfM 2018); 2018 Sep 28; Paris, France. New York: ACM; 2018. p. 78-86. DOI: 10.1145/3273024.3273025
+
+[2] Pretto, N; Bozkurt, B; Caro Repetto, R; and Serra, X "Nawba Recognition for Arab-Andalusian Music using Templates from Music Scores", Proceedings of the 15th Sound and Music Computing Conference 2018, SMC 2018, Limassol, Cyprus. DOI: 10.5281/zenodo.1257387
