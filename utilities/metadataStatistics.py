@@ -318,6 +318,9 @@ class CollectionMetadata:
     def get_recording_translitered_title(self, rmbid):
         return self.df_recording.loc[rmbid, 'transliterated_title']
 
+    def get_recording_orchestra_name(self, rmbid):
+        return str('('+self.df_recording.loc[rmbid, 'archive_url'].split('/')[-1].split('_')[0]+')')
+
     def convert_id(self, id, type_dataframe, type_name):
         ''' Convert the id in its 'name' or 'transliterated_name'
 

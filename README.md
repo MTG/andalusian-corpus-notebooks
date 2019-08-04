@@ -2,12 +2,16 @@
 
 ## Description
 
-This repository contains a docker-compose file to run a Jupyter server and the notebooks to download and analyse data and metadata from the Arab Andalusian Corpus of [Dunya](http://dunya.compmusic.upf.edu/). This repository contains four notebooks:
+This repository contains a docker-compose file to run a Jupyter server and the notebooks to download and analyse data and metadata from the Arab Andalusian Corpus of [Dunya](http://dunya.compmusic.upf.edu/). The structure of the repository is the next one:
 
-* **Corpus.ipynb**:  to download data and metadata from the Corpus, to compute the pitch profile, distribution and the tonic frequency of each recording;
-* **Metadata.ipynb**: to group, visualize and analyse metadata;
-* **NawbaPitchAnalysis.ipynb**: to visualize pitch distribution and note/class distribution of a single recording or of a group of them.
-* **NawbaRecognition.ipynb**: to compute several experiments to evaluate the performance on nawba recognition of algorithms based on templates derived from scores.
+* **/nawba_recognition**:
+	* **NawbaPitchAnalysis.ipynb**: to visualize pitch distribution and note/class distribution of a single recording or of a group of them.
+	* **NawbaRecognition.ipynb**: to compute several experiments to evaluate the performance on nawba recognition of algorithms based on templates derived from scores.
+* **/demos_notebooks**:
+	* **demo_andalusian_api.ipynb**: to understand the composition of the API from pycompmusic and
+	a small application.
+* **download_interface_corpus.ipynb**:  to download data and metadata from the Corpus, to compute the pitch profile, distribution and the tonic frequency of each recording;
+* **metadata_visualization_interface.ipynb**: to group, visualize and analyse metadata;
 
 ## Installation
 To run the notebooks, you need to first install docker. Here you can find the links to installation instructions for different operative systems:
@@ -40,7 +44,7 @@ The use of Dunya data and metadata requires that you register with [Dunya](http:
 #### NB: the computation of the data and metadata can require a couple of days. For this reason, the nawba recognition experiment includes a zip file with the necessary pre-computed files.
 
 ## Credits
-This work is based on a collaboration between [*Niccolò Pretto*](http://www.dei.unipd.it/~prettoni/), *Barış Bozkurt*, *Rafael Caro Repetto* and *Xavier Serra*, as part of the project [**Musical Bridges**](https://www.upf.edu/web/musicalbridges). The notebooks use the Arab Andalusian Corpus in Dunya, created during the [**CompMusic**](http://compmusic.upf.edu/) project.
+This work is based on a collaboration between [*Niccolò Pretto*](http://www.dei.unipd.it/~prettoni/), *Miguel García Casado*, *Barış Bozkurt*, *Rafael Caro Repetto* and *Xavier Serra*, as part of the project [**Musical Bridges**](https://www.upf.edu/web/musicalbridges). The notebooks use the Arab Andalusian Corpus in Dunya, created during the [**CompMusic**](http://compmusic.upf.edu/) project.
 
 These notebooks are based on **MIR-docker-extension** (https://github.com/MTG/MIR-docker-extension).
 The repository includes snippets of code and algorithms from the following repositories:
